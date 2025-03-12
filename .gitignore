@@ -1,0 +1,10 @@
+credentials.json
+*.pyc
+curriculum_output.txt
+*courses.db
+output_files/
+parser.out
+parsetab.py
+dist/
+logs/
+.env
