@@ -1,0 +1,21 @@
+[tool.poetry]
+name = "data"
+version = "0.1.0"
+description = ""
+authors = ["BreannaGSegarra <breanna.segarra@upr.edu>"]
+readme = "README.md"
+
+[tool.poetry.dependencies]
+python = "^3.12"
+fastapi = {extras = ["all"], version = "^0.115.11"}
+uvicorn = "^0.34.0"
+sqlalchemy = "^2.0.39"
+python-dotenv = "^1.0.1"
+
+
+[tool.poetry.group.dev.dependencies]
+pytest = "^8.3.5"
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
