@@ -1,4 +1,3 @@
-import 'package:curriculadora/drawer.dart';
 import 'package:flutter/material.dart';
 
 class GenerateSequence extends StatefulWidget {
@@ -11,20 +10,14 @@ class GenerateSequence extends StatefulWidget {
 class _GenerateSequenceState extends State<GenerateSequence> {
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text("New Curriculum"),
-      ),
-      drawer: const AppDrawer(),
-      body: const Center(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Text(
-              'This is the Generate Sequence Page',
-            ),
-          ],
-        ),
+    return const Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: <Widget>[
+          Text(
+            'This is the Generate Sequence Page',
+          ),
+        ],
       ),
     );
   }

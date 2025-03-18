@@ -1,4 +1,7 @@
+import 'package:curriculadora/models/curriculadora_cubit.dart';
+import 'package:curriculadora/models/curriculadora_pages.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_bloc/flutter_bloc.dart';
 
 class AppDrawer extends StatefulWidget {
   const AppDrawer({super.key});
@@ -20,21 +23,24 @@ class AppDrawerState extends State<AppDrawer> {
             title: const Text('Update Progress'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, "/updateProgress");
+              BlocProvider.of<CurriculadoraCubit>(context)
+                  .setPage(CurriculadoraPage.updateProgress);
             },
           ),
           ListTile(
             title: const Text('Saved Sequences'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, "/");
+              BlocProvider.of<CurriculadoraCubit>(context)
+                  .setPage(CurriculadoraPage.viewSequence);
             },
           ),
           ListTile(
             title: const Text('Generate Sequences'),
             onTap: () {
               Navigator.pop(context);
-              Navigator.pushNamed(context, "/generate");
+              BlocProvider.of<CurriculadoraCubit>(context)
+                  .setPage(CurriculadoraPage.generateSequence);
             },
           ),
           const Divider(),
