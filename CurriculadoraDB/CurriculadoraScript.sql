@@ -21,3 +21,4 @@ INSERT INTO Degree (degree_title) VALUES ('Dummy');
 --dummy comment 1
 --dummy comment 2
 --dummy comment 3
+--dummy comment 4
