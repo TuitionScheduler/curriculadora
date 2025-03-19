@@ -1,7 +1,14 @@
-name: Manually Reset Database
+name: Reset Database
 
 on:
-  workflow_dispatch:
+  push:
+    branches:
+      - database-testing
+  pull_request:
+    branches:
+      - main
+    paths:
+      - .github/workflows/test.yaml
 
 jobs:
   reset-db:
