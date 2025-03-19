@@ -1,9 +1,7 @@
 name: Reset Database
 
 on:
-  push:
-    branches:
-      - database-testing
+  workflow_dispatch:
 
 jobs:
   reset-db:
@@ -12,6 +10,8 @@ jobs:
     steps:
       - name: Check out repository
         uses: actions/checkout@v2
+        with:
+          ref: db-testing
 
       - name: SQLite Setup
         run: |
