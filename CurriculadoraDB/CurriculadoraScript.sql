@@ -20,3 +20,4 @@ INSERT INTO Degree (degree_title) VALUES ('Dummy');
 --SELECT degree_title FROM Degree;
 --dummy comment 1
 --dummy comment 2
+--dummy comment 3
