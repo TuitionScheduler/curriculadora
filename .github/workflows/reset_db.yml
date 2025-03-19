@@ -11,7 +11,7 @@ jobs:
       - name: Check out repository
         uses: actions/checkout@v2
         with:
-          ref: db-testing
+          ref: database-testing
 
       - name: SQLite Setup
         run: |
