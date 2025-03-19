@@ -30,7 +30,7 @@ def get_term_year(term: str | None = None) -> Tuple[str, int]:
 async def send_input(chan: Channel, inputs: list[Tuple[str, float]]) -> bool:
     res = 0
     for x in inputs:
-        res = chan.send(x[0].encode("ansi"))
+        res = chan.send(x[0].encode("latin-1"))
         if x[1] >= 0:
             await asyncio.sleep(x[1])
     return res != 0
@@ -42,7 +42,7 @@ async def read_channel(chan: Channel) -> str:
     while chan.recv_ready():
         result.append(chan.recv(1000))
         await asyncio.sleep(0.03)
-    return "".join(map(lambda b: b.decode("ansi"), result))
+    return "".join(map(lambda b: b.decode("latin-1"), result))
 
 
 async def setup(chan: Channel, term: str):

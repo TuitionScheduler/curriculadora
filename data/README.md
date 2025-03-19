@@ -1,6 +1,6 @@
 # Curriculator Scrapper
 
-(Instructions given with VSCode as the IDE)
+(Instructions given with VSCode as the IDE and poetry version 2.1.1)
 
 ## Poetry Installation:
 
@@ -11,8 +11,9 @@
 3. If "poetry --version" still doesnt show anything you may need
 to add it to PATH
 4. To do so, you will need to add this line to your shell config file
-    - For Windows: ???
-    - For Mac:
+    ### For Windows: ???
+
+    ### For Mac:
     1. Check which shell your computer is using by running:
         - echo $SHELL
     2. You'll either have a "zshrc" or "bash..." shell
@@ -48,12 +49,15 @@ to add it to PATH
 and be on the correct enviroment
 
 
-## How to Run:
-For Windows: ??? Run .bat program?
+## How to Run Scrape to SQL:
+
+NOTE: You can change command parameters between Fall, Spring, FirstSummer or SecondSummer. Keep in mind 1 academic year doesnt run as a calendar year. If you wish to collect the data from the semester from January-May of 2025, you wont type spring 2025 in the parameters, you'll type spring 2024 because that's the spring semester of the 24-25 academic year.
+
+### For Windows: ¿¿¿Simply Run sql_run.bat program???
 
 1.  
 
-For Mac:
+### For Mac:
 1. Open terminal inside the Data folder
     - cd data
 2. Make sure to have the correct virtual enviorment, refer
@@ -61,4 +65,3 @@ to the previous section "Requirement Installation" to do so
 3. Run the following command:
     - export PYTHONPATH=$(pwd)
     - bash sql_run.sh
-4.

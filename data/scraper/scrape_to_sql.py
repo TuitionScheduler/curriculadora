@@ -14,7 +14,7 @@ from scraper.ssh_scraper import (
     initialize_ssh_channels,
     ssh_scraper_task,
 )
-from models.database import Course, Section, Meeting, Base
+from database.database import Course, Section, Meeting, Base
 from models.constants import db_to_rumad_terms, ideal_ssh_tasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import (
@@ -139,6 +139,7 @@ async def scrape_to_sql(db_term, year, ssh_tasks, disable_ssh=False):
         disable_ssh = True
     # Set up logging
     configure_logging(ScraperTarget.SQLite)
+    logging.info(f"Starting scraping of {db_term} {year}-{year+1}")
     start_time = time.time()
     engine = create_async_engine("sqlite+aiosqlite:///courses.db", echo=False)
     async with engine.begin() as conn:
@@ -324,7 +325,7 @@ def main():
     )
 
     parser.add_argument(
-        "no_ssh",
+        "--no-ssh",
         action="store_true",
         help="Disable SSH scraping (only get data from web sources)",
     )
