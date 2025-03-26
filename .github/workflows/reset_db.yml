@@ -23,3 +23,24 @@ jobs:
           sqlite3 CurriculadoraDB/CurriculadoraDatabase.db < CurriculadoraDB/CurriculadoraScript.sql
         env:
           DATABASE_PATH: ./CurriculadoraDB/CurriculadoraDatabase.db  
+          
+      - name: Switch from HTTPS to SSH
+        run: git remote set-url origin ${{ secrets.ssh }}
+  
+      - name: Checkout database-testing branch
+        run: git checkout database-testing
+        
+      - name: Check for file changes
+        run: git status
+        
+      - name: Stage changed files
+        run: git add .
+        
+      - name: Commit changed files
+        run: git commit -m "Reset DB"
+        
+      - name: Fetch from database-testing branch
+        run: git fetch origin database-testing
+        
+      - name: Push code to database-testing branch
+        run: git push origin HEAD:database-testing
