@@ -32,7 +32,7 @@ jobs:
           ssh-keyscan github.com >> ~/.ssh/known_hosts
         
       - name: Switch from HTTPS to SSH
-        run: git remote set-url origin ${{ secrets.SSH_REPO_URL }}
+        run: git remote set-url origin git@github.com:TuitionScheduler/curriculadora.git
   
       - name: Checkout database-testing branch
         run: git checkout database-testing
