@@ -25,12 +25,9 @@ jobs:
           DATABASE_PATH: ./CurriculadoraDB/CurriculadoraDatabase.db  
 
       - name: SSH Setup
-        run: |
-          mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_REPO_KEY }}" > ~/.ssh/id_rsa
-          chmod 600 ~/.ssh/id_rsa
-          ssh-keyscan github.com >> ~/.ssh/known_hosts
-          ssh-add ~/.ssh/id_rsa
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_REPO_KEY }}
         
       - name: Switch from HTTPS to SSH
         run: git remote set-url origin git@github.com:TuitionScheduler/curriculadora.git
