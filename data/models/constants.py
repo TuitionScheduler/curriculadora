@@ -1,4 +1,4 @@
-from models.enums import Term
+from data.models.enums import Term
 
 
 number_to_db_term = {

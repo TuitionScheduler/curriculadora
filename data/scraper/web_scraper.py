@@ -4,8 +4,8 @@ import aiohttp
 from aiolimiter import AsyncLimiter
 from bs4 import BeautifulSoup, Tag
 import re
-from scraper.scraper_utils import apply_regex
-from models.constants import db_term_to_number
+from data.scraper.scraper_utils import apply_regex
+from data.models.constants import db_term_to_number
 
 
 def get_modality(section_code):

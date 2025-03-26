@@ -8,14 +8,14 @@ import asyncio
 from aiolimiter import AsyncLimiter
 from paramiko import SSHClient
 from sqlalchemy import delete
-from parser.schedule_parser import parse_schedule
-from scraper.log_utils import ScraperTarget, configure_logging
-from scraper.ssh_scraper import (
+from data.parser.schedule_parser import parse_schedule
+from data.scraper.log_utils import ScraperTarget, configure_logging
+from data.scraper.ssh_scraper import (
     initialize_ssh_channels,
     ssh_scraper_task,
 )
-from database.database import Course, Section, Meeting, Base
-from models.constants import db_to_rumad_terms, ideal_ssh_tasks
+from data.database.database import Course, Section, Meeting, Base
+from data.models.constants import db_to_rumad_terms, ideal_ssh_tasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import (
     create_async_engine,
@@ -24,7 +24,7 @@ from sqlalchemy.ext.asyncio import (
     async_sessionmaker,
 )
 from sqlalchemy.orm import selectinload
-from scraper.web_scraper import web_scraper_task
+from data.scraper.web_scraper import web_scraper_task
 
 
 async def write_to_database_task(
@@ -145,9 +145,9 @@ async def scrape_to_sql(db_term, year, ssh_tasks, disable_ssh=False):
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
 
-    with open("input_files/professor_ids.txt") as file:
+    with open("data/input_files/professor_ids.txt") as file:
         professor_ids = json.load(file)
-    with open("input_files/departments.txt") as file:
+    with open("data/input_files/departments.txt") as file:
         departments = [department.strip() for department in file]
     # Departments will travel like so: File -> Web Queue -> SSH Queue -> DB Queue
     # ssh queue and db queue have dictionary representations of all the courses in a department

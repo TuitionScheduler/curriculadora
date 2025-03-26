@@ -7,12 +7,12 @@ from datetime import datetime
 import asyncio
 import os
 import socket
-from models.enums import Term
-from parser.ansi_parser import parse_department_page
-from models.constants import TERMS
+from data.models.enums import Term
+from data.parser.ansi_parser import parse_department_page
+from data.models.constants import TERMS
 from pathlib import Path
 
-from scraper.log_utils import get_scraper_run_id
+from data.scraper.log_utils import get_scraper_run_id
 
 MAX_RETRIES = 1
 SSH_ENCODING = "mbcs" if os.name == "nt" else "latin_1"
