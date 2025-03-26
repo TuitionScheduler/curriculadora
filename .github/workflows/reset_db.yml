@@ -33,6 +33,11 @@ jobs:
         
       - name: Switch from HTTPS to SSH
         run: git remote set-url origin git@github.com:TuitionScheduler/curriculadora.git
+
+      - name: Github User Setup
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
   
       - name: Checkout database-testing branch
         run: git checkout database-testing
