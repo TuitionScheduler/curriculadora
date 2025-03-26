@@ -27,9 +27,10 @@ jobs:
       - name: SSH Setup
         run: |
           mkdir -p ~/.ssh
-          echo "${{ secrets.SSH_PRIVATE_KEY }}" > ~/.ssh/id_rsa
+          echo "${{ secrets.SSH_PRIVATE_REPO_KEY }}" > ~/.ssh/id_rsa
           chmod 600 ~/.ssh/id_rsa
           ssh-keyscan github.com >> ~/.ssh/known_hosts
+          ssh-add ~/.ssh/id_rsa
         
       - name: Switch from HTTPS to SSH
         run: git remote set-url origin git@github.com:TuitionScheduler/curriculadora.git
