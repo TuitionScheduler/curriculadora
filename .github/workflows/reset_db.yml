@@ -1,0 +1,25 @@
+name: Reset Database
+
+on:
+  workflow_dispatch:
+
+jobs:
+  reset-db:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          ref: database-testing
+
+      - name: SQLite Setup
+        run: |
+          sudo apt-get update
+          sudo apt-get install sqlite3
+
+      - name: Run SQL script to reset database
+        run: |
+          sqlite3 CurriculadoraDB/CurriculadoraDatabase.db < CurriculadoraDB/CurriculadoraScript.sql
+        env:
+          DATABASE_PATH: ./CurriculadoraDB/CurriculadoraDatabase.db  
