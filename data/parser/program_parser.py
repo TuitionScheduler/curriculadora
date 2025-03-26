@@ -48,7 +48,7 @@ def purify_programs():
 
 
 def main():
-    # Print code, degree type, and program name for each program.
+    # Write code, degree type, and program name for each program.
     with open("data/input_files/programs.txt", "w", encoding="UTF-8") as file:
         file.write("Code, Degree Type, Program Name\n")
         program_list = purify_programs()
