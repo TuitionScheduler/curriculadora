@@ -20,7 +20,7 @@ jobs:
 
       - name: Run SQL script to reset database
         run: |
-          sqlite3 CurriculadoraDB/CurriculadoraDatabase.db < CurriculadoraDB/CurriculadoraScript.sql
+          sqlite3 CurriculadoraDB/CurriculadoraDatabase.db < CurriculadoraDB/Curriculadora_Reset_Script.sql
         env:
           DATABASE_PATH: ./CurriculadoraDB/CurriculadoraDatabase.db  
 
