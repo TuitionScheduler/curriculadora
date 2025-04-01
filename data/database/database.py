@@ -113,5 +113,5 @@ class GradeDistribution(Base):
     section = relationship("Section", back_populates="grade_distributions")
 
 
-engine = create_engine("sqlite:///courses.db", echo=True)
+engine = create_engine("sqlite:///data/database/courses.db", echo=True)
 Base.metadata.create_all(engine)
