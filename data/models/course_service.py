@@ -1,6 +1,5 @@
 #requisite unused
-
-from models.database import Course, engine
+from data.database.database import Course, engine
 from sqlalchemy.orm import sessionmaker, aliased
 from sqlalchemy import func, distinct
 

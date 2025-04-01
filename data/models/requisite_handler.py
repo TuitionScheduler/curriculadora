@@ -2,11 +2,11 @@
 
 from functools import reduce
 from typing import Tuple
-from models.course import DesiredCourse
-from models.course_requisite_result import RequisitesAnalysisResult
-from models.course_service import CourseService
-from models.student import StudentRecord
-from parser.requisite_parser import parse_prerequisites, parse_corequisites
+from data.models.course import DesiredCourse
+from data.models.course_requisite_result import RequisitesAnalysisResult
+from data.models.course_service import CourseService
+from data.models.student import StudentRecord
+from data.parser.requisite_parser import parse_prerequisites, parse_corequisites
 
 
 class RecommendationSystem:
