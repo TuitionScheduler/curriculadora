@@ -2,7 +2,7 @@ import sys
 from bs4 import BeautifulSoup
 import json
 
-from data.input_files.programs_div import HTML_CONTENT
+from data.input_files.programs_constants import HTML_CONTENT
 
 # Map degree types to a letter.
 DEGREE_MAPPING = {
@@ -40,10 +40,15 @@ def purify_programs():
             # Determine the degree type.
             degree_type = DEGREE_MAPPING.get(degree_type_raw, "N")
 
-            # Append to the list.
-            program_list.append(
-                {"code": code, "degree_type": degree_type, "program_name": program_name}
-            )
+            # Append to the list if the degree type is bachelor's.
+            if degree_type == "B":
+                program_list.append(
+                    {
+                        "code": code,
+                        "degree_type": degree_type,
+                        "program_name": program_name,
+                    }
+                )
     return program_list
 
 
