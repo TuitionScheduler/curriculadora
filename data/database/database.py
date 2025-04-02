@@ -29,6 +29,7 @@ class Program(Base):
     technical_courses = Column(String)
     free = Column(Integer)
     kinesiology = Column(Integer)
+    longest_path = Column(Integer)
 
 
 class Course(Base):

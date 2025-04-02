@@ -84,6 +84,7 @@ def main():
                 technical_courses=program_technical_courses,
                 free=program_free,
                 kinesiology=program_kinesiology,
+                longest_path=0,
             )
 
             # Add to session.
