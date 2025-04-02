@@ -35,7 +35,7 @@ jobs:
 
       - name: Run python script to create/update database
         run: |
-          bash sql_run.bat
+          bash sql_run.sh
       
       # - name: Run python script to create/update database
       #   run: |
