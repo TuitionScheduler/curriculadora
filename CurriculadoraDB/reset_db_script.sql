@@ -1,0 +1,13 @@
+-- DROP TABLE IF EXISTS Course;
+
+-- DROP TABLE IF EXISTS Degree;
+
+DROP TABLE IF EXISTS courses;
+
+DROP TABLE IF EXISTS grade_distributions;
+
+DROP TABLE IF EXISTS meetings;
+
+DROP TABLE IF EXISTS programs; 
+
+DROP TABLE IF EXISTS sections;
