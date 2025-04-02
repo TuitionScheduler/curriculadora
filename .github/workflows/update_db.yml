@@ -30,12 +30,13 @@ jobs:
       - name: Run python script to create/update database
         run: |
           cd data
-          export PYTHONPATH=$(pwd) 
+          export PYTHONPATH=$(pwd)
           bash sql_run.sh
       
       # - name: Run python script to create/update database
       #   run: |
       #     poetry run python data/scraper/scrape_to_sql.py --term Spring
+      # ???
 
       - name: SSH Setup
         uses: webfactory/ssh-agent@v0.5.3
