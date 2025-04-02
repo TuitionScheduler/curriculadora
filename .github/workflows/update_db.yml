@@ -30,7 +30,7 @@ jobs:
       - name: Run python script to create/update database
         run: |
           cd data
-          export PYTHONPATH=$(pwd)
+          export PYTHONPATH=$(pwd) 
           bash sql_run.sh
       
       # - name: Run python script to create/update database
