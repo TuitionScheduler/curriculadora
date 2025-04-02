@@ -29,8 +29,10 @@ jobs:
 
       - name: Run python script to create/update database
         run: |
-          export PYTHONPATH=$(pwd)/data
-          bash data/sql_run.sh
+          poetry run python data/scraper/scrape_to_sql.py -t Fall -y 2024
+          poetry run python data/scraper/scrape_to_sql.py -t Spring -y 2024
+          poetry run python data/scraper/scrape_to_sql.py -t FirstSummer -y 2024
+          poetry run python data/scraper/scrape_to_sql.py -t SecondSummer -y 2024
       
       # - name: Run python script to create/update database
       #   run: |
