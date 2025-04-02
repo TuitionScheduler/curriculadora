@@ -3,7 +3,7 @@ name: Update Database
 on:
   push:
     branches:
-      - database_testing 
+      - database-testing 
   workflow_dispatch:
 
 jobs:
