@@ -1,0 +1,64 @@
+name: Update Database
+
+on:
+  # nvm for now, this was causing an infinite loop  xD
+  # push:
+  #   branches:
+  #     - database-testing 
+  workflow_dispatch:
+
+jobs:
+  update-db:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v2
+        with:
+          ref: database-testing
+
+      - name: Set up Python
+        uses: actions/setup-python@v2
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install poetry
+          poetry install
+
+      - name: Run python script to create/update database
+        run: |
+          python data\scraper\scrape_to_sql.py
+
+      - name: SSH Setup
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_REPO_KEY }}
+        
+      - name: Switch from HTTPS to SSH
+        run: git remote set-url origin git@github.com:TuitionScheduler/curriculadora.git
+
+      - name: Github User Setup
+        run: |
+          git config --global user.email "${{ github.actor }}@users.noreply.github.com"
+          git config --global user.name "${{ github.actor }}"
+  
+      - name: Checkout database-testing branch
+        run: git checkout database-testing
+        
+      - name: Check for file changes
+        run: git status
+        
+      - name: Stage changed files
+        run: git add .
+        
+      - name: Commit changed files
+        run: git commit -m "Update DB"
+        
+      - name: Fetch from database-testing branch
+        run: git fetch origin database-testing
+        
+      - name: Push code to database-testing branch
+        run: git push origin HEAD:database-testing
