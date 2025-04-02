@@ -26,6 +26,11 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
+      
+      - name: SSH Setup
+        uses: webfactory/ssh-agent@v0.5.3
+        with:
+          ssh-private-key: ${{ secrets.SSH_PRIVATE_REPO_KEY }}
 
       - name: Run python script to create/update database
         run: |
@@ -39,10 +44,10 @@ jobs:
       #     poetry run python data/scraper/scrape_to_sql.py --term Spring
       # ???
 
-      - name: SSH Setup
-        uses: webfactory/ssh-agent@v0.5.3
-        with:
-          ssh-private-key: ${{ secrets.SSH_PRIVATE_REPO_KEY }}
+      # - name: SSH Setup
+      #   uses: webfactory/ssh-agent@v0.5.3
+      #   with:
+      #     ssh-private-key: ${{ secrets.SSH_PRIVATE_REPO_KEY }}
         
       - name: Switch from HTTPS to SSH
         run: git remote set-url origin git@github.com:TuitionScheduler/curriculadora.git
