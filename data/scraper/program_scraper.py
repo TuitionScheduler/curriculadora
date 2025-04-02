@@ -1,10 +1,13 @@
 import json
 import sys
-from sqlalchemy import create_engine, desc
+from sqlalchemy import create_engine
 from sqlalchemy.orm import sessionmaker
 from data.database.database import Base, Program, Course
 from data.input_files.programs_metadata import PROGRAMS_METADATA
-from data.parser.requisite_parser import parse_prerequisites, parse_corequisites, lexer
+from data.parser.dependency_parser import (
+    load_and_parse_all_course_reqs,
+    generate_program_dependency_trees,
+)
 
 
 def main():
@@ -18,6 +21,12 @@ def main():
     db_session = SessionLocal()
 
     try:
+        # --- Pre-computation Step ---
+        # Load and parse requisites for ALL courses ONCE.
+        all_course_requisites = load_and_parse_all_course_reqs(db_session)
+        # --- End Pre-computation ---
+
+        # Delete old entries for the program.
         num_rows_deleted = db_session.query(Program).delete()
         print(
             f"DB Task: Deleted {num_rows_deleted} existing records from the 'programs' table."
@@ -65,100 +74,19 @@ def main():
                 program_info.get("kinesiology"),
             )
 
-            # --- Process Courses List ---
-            enhanced_courses = []
-            if program_courses:  # Check if the list is not empty/None.
-                for course_code_str in program_courses:
-                    # Query the LATEST entry for the course code in the Course table.
-                    # Assumes scrape_to_sql keeps the Course table updated.
-                    course_db_entry = (
-                        db_session.query(Course)
-                        .filter(Course.course_code == course_code_str)
-                        .order_by(desc(Course.year), desc(Course.term))
-                        .first()
-                    )
+            # --- Generate Dependency Trees ---
+            # Pass the raw course code list and the pre-computed reqs.
+            courses_tree_list = generate_program_dependency_trees(
+                program_courses, all_course_requisites
+            )
+            tech_courses_tree_list = generate_program_dependency_trees(
+                program_technical_courses, all_course_requisites
+            )
+            # --- End Generate Dependency Trees ---
 
-                    parsed_prereqs = {}
-                    parsed_coreqs = {}
-                    if course_db_entry:
-                        prereq_str = course_db_entry.prerequisites
-                        coreq_str = course_db_entry.corequisites
-                        try:
-                            lexer.lineno = 1
-                            parsed_prereqs = parse_prerequisites(prereq_str or "")
-                        except Exception as e:
-                            print(
-                                f"DB Task: WARNING - Failed to parse prereqs for {course_code_str}: '{prereq_str}'. Error: {e}"
-                            )
-                        try:
-                            lexer.lineno = 1
-                            parsed_coreqs = parse_corequisites(coreq_str or "")
-                        except Exception as e:
-                            print(
-                                f"DB Task: WARNING - Failed to parse coreqs for {course_code_str}: '{coreq_str}'. Error: {e}"
-                            )
-                    else:
-                        print(
-                            f"DB Task: WARNING - Course code {course_code_str} not found in 'courses' table for prereq/coreq lookup."
-                        )
-
-                    enhanced_courses.append(
-                        {
-                            "code": course_code_str,
-                            "prerequisites": parsed_prereqs
-                            or {},  # Ensure it is a dict.
-                            "corequisites": parsed_coreqs or {},  # Ensure it is a dict.
-                        }
-                    )
-            program_courses_json = json.dumps(enhanced_courses)
-            # --- End Process Courses List ---
-
-            # --- Process Technical Courses List ---
-            enhanced_tech_courses = []
-            if program_technical_courses:  # Check if the list is not empty/None.
-                for tech_course_code_str in program_technical_courses:
-                    # Query the LATEST entry for the course code.
-                    course_db_entry = (
-                        db_session.query(Course)
-                        .filter(Course.course_code == tech_course_code_str)
-                        .order_by(desc(Course.year), desc(Course.term))
-                        .first()
-                    )
-
-                    parsed_prereqs = {}
-                    parsed_coreqs = {}
-                    if course_db_entry:
-                        prereq_str = course_db_entry.prerequisites
-                        coreq_str = course_db_entry.corequisites
-                        try:
-                            lexer.lineno = 1
-                            parsed_prereqs = parse_prerequisites(prereq_str or "")
-                        except Exception as e:
-                            print(
-                                f"DB Task: WARNING - Failed to parse prereqs for {tech_course_code_str}: '{prereq_str}'. Error: {e}"
-                            )
-                        try:
-                            lexer.lineno = 1
-                            parsed_coreqs = parse_corequisites(coreq_str or "")
-                        except Exception as e:
-                            print(
-                                f"DB Task: WARNING - Failed to parse coreqs for {tech_course_code_str}: '{coreq_str}'. Error: {e}"
-                            )
-                    else:
-                        print(
-                            f"DB Task: WARNING - Course code {tech_course_code_str} not found in 'courses' table for prereq/coreq lookup."
-                        )
-
-                    enhanced_tech_courses.append(
-                        {
-                            "code": tech_course_code_str,
-                            "prerequisites": parsed_prereqs
-                            or {},  # Ensure it is a dict.
-                            "corequisites": parsed_coreqs or {},  # Ensure it is a dict.
-                        }
-                    )
-            program_technical_courses_json = json.dumps(enhanced_tech_courses)
-            # --- End Process Technical Courses List ---
+            # Convert TREE lists to JSON strings.
+            program_courses_json = json.dumps(courses_tree_list)
+            program_technical_courses_json = json.dumps(tech_courses_tree_list)
 
             # Create Program object.
             program = Program(
