@@ -15,11 +15,20 @@ Base = declarative_base()
 
 class Program(Base):
     __tablename__ = "programs"
-    prog_code = Column(String(5), primary_key=True, nullable=False)
-    prog_name = Column(String, nullable=False)
+    code = Column(String(5), primary_key=True, nullable=False)
+    name = Column(String, nullable=False)
     degree_type = Column(String(1), nullable=False)
     credits = Column(Integer)
-    curriculum = Column(String)
+    courses = Column(String)
+    english = Column(Integer)
+    spanish = Column(Integer)
+    humanities = Column(Integer)
+    social = Column(Integer)
+    sociohumanistics = Column(Integer)
+    technical = Column(Integer)
+    technical_courses = Column(String)
+    free = Column(Integer)
+    kinesiology = Column(Integer)
 
 
 class Course(Base):
