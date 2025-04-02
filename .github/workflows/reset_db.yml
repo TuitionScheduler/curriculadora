@@ -1,3 +1,5 @@
+# Defunct Github Action, updated one is in database-testing branch
+
 name: Reset Database
 
 on:
