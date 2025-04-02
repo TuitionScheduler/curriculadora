@@ -1,9 +1,10 @@
 name: Update Database
 
 on:
-  push:
-    branches:
-      - database-testing 
+  # nvm for now, this was causing an infinite loop  xD
+  # push:
+  #   branches:
+  #     - database-testing 
   workflow_dispatch:
 
 jobs:
