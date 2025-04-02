@@ -29,7 +29,7 @@ jobs:
 
       - name: Run python script to create/update database
         run: |
-          python data\scraper\scrape_to_sql.py
+          python data/scraper/scrape_to_sql.py
 
       - name: SSH Setup
         uses: webfactory/ssh-agent@v0.5.3
