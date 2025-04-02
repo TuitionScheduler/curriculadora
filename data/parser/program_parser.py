@@ -2,7 +2,7 @@ import sys
 from bs4 import BeautifulSoup
 import json
 
-from data.input_files.programs_constants import HTML_CONTENT
+from data.input_files.programs_div import HTML_CONTENT
 
 # Map degree types to a letter.
 DEGREE_MAPPING = {
