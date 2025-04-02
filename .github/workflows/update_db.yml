@@ -3,7 +3,7 @@ name: Update Database
 on:
   push:
     branches:
-      - database_testing 
+      - database-testing 
   workflow_dispatch:
 
 jobs:
@@ -31,7 +31,7 @@ jobs:
         run: |
           cd data
           export PYTHONPATH=$(pwd)
-          bash data\sql_run.sh
+          bash sql_run.sh
       
       # - name: Run python script to create/update database
       #   run: |
