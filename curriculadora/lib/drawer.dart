@@ -45,6 +45,15 @@ class AppDrawerState extends State<AppDrawer> {
           ),
           const Divider(),
           ListTile(
+            title: const Text('Add Curriculum'),
+            onTap: () {
+              Navigator.pop(context);
+              BlocProvider.of<CurriculadoraCubit>(context)
+                  .setPage(CurriculadoraPage.addCurriculum);
+            },
+          ),
+          const Divider(),
+          ListTile(
             title: const Text('Settings'),
             onTap: () {},
           ),
