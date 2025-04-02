@@ -53,15 +53,17 @@ and be on the correct enviroment
 
 NOTE: You can change command parameters between Fall, Spring, FirstSummer or SecondSummer. Keep in mind 1 academic year doesnt run as a calendar year. If you wish to collect the data from the semester from January-May of 2025, you wont type spring 2025 in the parameters, you'll type spring 2024 because that's the spring semester of the 24-25 academic year.
 
-### For Windows: ¿¿¿Simply Run sql_run.bat program???
+### For Windows:
 
-1.  
+1. Open terminal and stay within the root directory.
+2. Make sure to have the correct virtual environment; refer to the previous section "Requirement Installation" to do so,
+3. Run the following command:
+    - .\sql_run.bat
 
 ### For Mac:
-1. Open terminal inside the Data folder
+1. Open terminal inside the Data folder:
     - cd data
-2. Make sure to have the correct virtual enviorment, refer
-to the previous section "Requirement Installation" to do so
+2. Make sure to have the correct virtual environment; refer to the previous section "Requirement Installation" to do so.
 3. Run the following command:
     - export PYTHONPATH=$(pwd)
     - bash sql_run.sh
