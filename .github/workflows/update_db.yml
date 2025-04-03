@@ -1,10 +1,10 @@
 name: Update Database
 
 on:
-  # nvm for now, this was causing an infinite loop  xD
-  # push:
-  #   branches:
-  #     - database-testing 
+  schedule:
+    - cron: '1 5 * * 3,6'
+    - cron: '30 19 * * *'
+    - cron: '30 * * * *'
   workflow_dispatch:
 
 jobs:
