@@ -7,7 +7,7 @@ import argparse
 import asyncio
 from aiolimiter import AsyncLimiter
 from paramiko import SSHClient
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from data.parser.schedule_parser import parse_schedule
 from data.scraper.log_utils import ScraperTarget, configure_logging
 from data.scraper.ssh_scraper import (
@@ -50,16 +50,59 @@ async def write_to_database_task(
                     # Go through all the courses, delete existing db records, then batch add all the new records
                     courses = []
                     for course_code, course_data in data["courses"].items():
-                        course = Course(
-                            course_code=course_code,
-                            course_name=course_data["courseName"],
-                            year=year,
-                            term=term,
-                            credits=course_data["credits"],
-                            department=course_data["department"],
-                            prerequisites=course_data["prerequisites"],
-                            corequisites=course_data["corequisites"],
+                        
+                        temp_last_fall = 0
+                        temp_last_spring = 0
+
+                        if term.lower() == "fall":
+                            temp_last_fall = year
+                        if term.lower() == "spring":
+                            temp_last_spring = year
+
+                        # Check if the course is already in the database
+                        stmt = select(Course).options(selectinload(Course.sections)).where(
+                            Course.course_code == course_code
                         )
+                        result = await session.execute(stmt)
+                        existing_course = result.scalars().first()
+
+                        # If the course exists, get the last_fall and last_spring values
+                        # and update the course
+                        if existing_course:
+                            temp_last_fall = existing_course.last_Fall
+                            temp_last_spring = existing_course.last_Spring
+
+                            # Update last_fall or last_spring
+                            if term.lower() == "fall" and (year > temp_last_fall):
+                                temp_last_fall = year
+                            if term.lower() == "spring" and (year > temp_last_spring):
+                                temp_last_spring = year
+
+                            course = existing_course
+                            course.course_name = course_data["courseName"]
+                            course.year = year
+                            course.term = term
+                            course.last_Fall = temp_last_fall
+                            course.last_Spring = temp_last_spring
+                            course.credits = course_data["credits"]
+                            course.department = course_data["department"]
+                            course.prerequisites = course_data["prerequisites"]
+                            course.corequisites = course_data["corequisites"]
+
+                        #If it doesn't exist, create a new course
+                        else:
+                            course = Course(
+                                course_code=course_code,
+                                course_name=course_data["courseName"],
+                                year=year,
+                                term=term,
+                                last_Fall = temp_last_fall,
+                                last_Spring = temp_last_spring,
+                                credits=course_data["credits"],
+                                department=course_data["department"],
+                                prerequisites=course_data["prerequisites"],
+                                corequisites=course_data["corequisites"],
+                            )
 
                         # Add new sections and meetings
                         for section_data in course_data["sections"]:
@@ -77,6 +120,7 @@ async def write_to_database_task(
                                     ]
                                 ),
                                 misc=section_data["misc"],
+                                semester= term + "-" + str(year),
                             )
                             course.sections.append(section)
                             for meeting_text in section_data["meetings"]:
@@ -93,12 +137,12 @@ async def write_to_database_task(
                                 section.meetings.append(meeting)
 
                         # delete the existing version of the course and add the new one to the db
-                        course_delete_query = delete(Course).where(
-                            Course.course_code == course_code
-                            and Course.term == term
-                            and Course.year == year
-                        )
-                        await session.execute(course_delete_query)
+                        # course_delete_query = delete(Course).where(
+                        #     Course.course_code == course_code
+                        #     and Course.term == term
+                        #     and Course.year == year
+                        # )
+                        # await session.execute(course_delete_query)
                         courses.append(course)
                     try:
                         logging.info(
