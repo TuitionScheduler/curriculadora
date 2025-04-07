@@ -5,11 +5,13 @@ import 'package:url_launcher/link.dart';
 // ------------- For .db file management, storage and queries ------------------
 import 'dart:async';
 import 'package:http/http.dart' as http;
-import 'dart:typed_data';
-import 'package:indexed_db/indexed_db.dart';
+import 'dart:typed_data' as typed_data;
+import 'dart:js_interop';
+import 'package:indexed_db/indexed_db.dart' as indexed_db;
+import 'package:web/web.dart' as web;
 import 'package:sqflite_common_ffi/sqflite_ffi_web.dart';
 import 'package:flutter/foundation.dart';
-import 'dart:io';
+import 'dart:io' as io;
 import 'dart:io' show Platform;
 import 'package:sqflite/sqflite.dart';
 
@@ -28,19 +30,19 @@ Future<Uint8List> downloadDatabaseFromGithub() async {
 
 // Stores courses.db in the device's "\Databases" directory
 // For Android and IOS 
-Future<void> storeDatabaseInDeviceStorage(Uint8List databaseBytes) async {
+Future<void> storeDatabaseInDeviceStorage(typed_data.Uint8List databaseBytes) async {
   String pathToDatabaseStorage = await getDatabasesPath();
   String dbFilePath = '$pathToDatabaseStorage/courses.db';
-  File dbFile = File(dbFilePath);
+  io.File dbFile = io.File(dbFilePath); // specified io due to File Class ambiguity between io.File and web.File 
   await dbFile.writeAsBytes(databaseBytes);
 }
 
 
 // Creates an IndexedDB that stores courses.db 
 // For web platforms (browsers)
-Future<void> storeDatabaseInIndexedStorage(Uint8List databaseBytes) async {
+Future<void> storeDatabaseInIndexedStorage(typed_data.Uint8List databaseBytes) async {
   // Creates an IndexedDB and a general ObjectStore to store files in
-  IDBDatabase indexedStorage = await window.indexedDB!.open("User_Indexed_Storage", version: 1, onUpgradeNeeded: (e) {
+  IDBOpenDBRequest indexedStorage = window.indexedDB.open("User_Indexed_Storage", version: 1, onUpgradeNeeded: (e) {
     temp = e.target.result as IDBDatabase;
     if (!temp.objectStoreNames.contains("local_files")) {
       temp.createObjectStore("local_files");
@@ -49,9 +51,10 @@ Future<void> storeDatabaseInIndexedStorage(Uint8List databaseBytes) async {
   });
 
   // Stores the database in the ObjectStore
-  ObjectStore store = indexedStorage.transaction("local_files", "readwrite").objectStore("local_files");
-  Blob databaseFile = Blob([databaseBytes]);
-  await store.put(databaseFile, "courses.db");
+  indexed_db.IDBObjectStore store = indexedStorage.transaction("local_files", "readwrite").objectStore("local_files");
+  JSArray jsArray = JSArray.from(databaseBytes); // ???
+  web.Blob databaseFile = web.Blob([databaseBytes]); // ????
+  store.put(databaseFile, "courses.db");
   // do i need to close???
 }
 
