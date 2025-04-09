@@ -29,7 +29,6 @@ class Program(Base):
     technical_courses = Column(String)
     free = Column(Integer)
     kinesiology = Column(Integer)
-    longest_path = Column(Integer)
 
 
 class Course(Base):
@@ -41,10 +40,14 @@ class Course(Base):
     term = Column(String, nullable=False)
     last_Fall = Column(Integer)
     last_Spring = Column(Integer)
+    last_FirstSummer = Column(Integer)
+    last_SecondSummer = Column(Integer)
+    last_ExtendedSummer = Column(Integer)
     credits = Column(Integer)
     department = Column(String)
     prerequisites = Column(String)
     corequisites = Column(String)
+    highest_ancestor = Column(Integer)
     difficulty = Column(Integer)
 
     # Define a one-to-many relationship between Course and Section
