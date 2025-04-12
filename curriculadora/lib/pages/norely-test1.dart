@@ -203,7 +203,7 @@ Future<SqlJsDatabase> getDatabaseForWeb() async {
   // Converts the Dart-IndexedDatabase into a Javascript-SQLDatabase for 
   // Javascript SQL query processing at runtime
   SqlJs sqlJs = await promiseToFuture(initSqlJs({
-    'locateFile': (String file) => 'sql_wasm.wasm',
+    'locateFile': (String file) => 'sql-wasm.wasm',
   })) as SqlJs;
 
   return sqlJs.Database(databaseBytes);
