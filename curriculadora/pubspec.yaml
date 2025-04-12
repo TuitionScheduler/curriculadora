@@ -37,6 +37,10 @@ dependencies:
   cupertino_icons: ^1.0.8
   url_launcher: ^6.3.1
 
+  # 
+  flutter_bloc: ^9.1.0
+  flutter_form_builder: ^10.0.1
+
 
   # Allows for downloading .db file and accessing data through queries
   http: ^0.13.3
