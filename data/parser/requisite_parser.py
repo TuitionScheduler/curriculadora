@@ -1,4 +1,4 @@
-#requisite unused
+# requisite unused
 
 import re
 import ply.yacc as yacc
@@ -143,7 +143,7 @@ def t_EXAM_REQUIREMENT(t):
 
 
 def t_DEPARTMENT_REQUIREMENT(t):
-    r"[A-Z]{4}"
+    r"(?!PARA)[A-Z]{4}"
     t.value = {"type": "DEPARTMENT_REQUIREMENT", "value": t.value}
     return t
 
