@@ -175,7 +175,29 @@ def check_requisites_recursive(req_dict: dict, completed_courses: Set[str]) -> b
         return any(
             check_requisites_recursive(cond, completed_courses) for cond in conditions
         )
-    # Add ANDOR/FOR logic if needed
+    elif req_type == "ANDOR":
+        # "A Y/O B" usually means A OR B OR Both. Functionally equivalent to OR for checking completion.
+        logger.debug(f"Treating ANDOR node as OR for requirement check: {req_dict}")
+        # Check parser output: does it use "conditions" or "value"? Your parser uses "value" for this rule.
+        conditions = req_dict.get("value", [])  # Use "value" based on p_andor_group
+        if not isinstance(conditions, list):
+            return False  # Invalid structure
+        if not conditions:
+            return False  # Empty ANDOR cannot be satisfied
+        # Must satisfy ANY condition recursively
+        return any(
+            check_requisites_recursive(cond, completed_courses) for cond in conditions
+        )
+    elif req_type == "FOR":
+        # The 'FOR' (PARA) node usually describes *what* a requirement applies to
+        # (e.g., '6 credits FOR MATE'), not a condition checked against completed courses.
+        # This type should ideally be filtered out by filter_parsed_requisites before checking.
+        # If it appears here, it means the requirement structure isn't purely course-based.
+        # We treat it as unmet in the context of checking *course* prerequisites.
+        logger.warning(
+            f"Encountered 'FOR' type during requisite check, treating as unmet: {req_dict}"
+        )
+        return False
     else:
         # This case shouldn't be reached if input is pre-filtered correctly
         logger.warning(
