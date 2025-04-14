@@ -3,7 +3,7 @@ from fastapi import FastAPI, Depends, HTTPException, APIRouter
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, validator
 from typing import List, Dict, Optional, Literal, Set
-from data.database.database import get_db, Program, Course
+from data.database.database import Program, Course
 from data.logic.scheduler import (
     generate_schedule_heuristic,
     load_program_data,
