@@ -1,4 +1,98 @@
+import 'package:curriculadora/models/reading-test.dart';
 import 'package:flutter/material.dart';
+
+class DisplaySequence extends StatefulWidget {
+  const DisplaySequence({super.key});
+
+  @override
+  State<DisplaySequence> createState() => _DisplaySequenceState();
+}
+
+class _DisplaySequenceState extends State<DisplaySequence> {
+  List<Widget> readDB() {
+    List<Widget> semesterList = [];
+    Map<String, Map<String, dynamic>> sequence = testSequence();
+    Map<String, Map<String, dynamic>> courses = testCourses();
+    Iterable<String> terms = sequence.keys;
+    for (final term in terms) {
+      List<Widget> courseList = [];
+      courseList.add(Row(
+        children: [
+          Text(term, style: TextStyle(color: Colors.black.withOpacity(0.5))),
+        ],
+      ));
+      courseList.add(
+        const SizedBox(
+          height: 5,
+        ),
+      );
+
+      for (int j = 0; j < sequence[term]!["courses"].length; j++) {
+        String code = sequence[term]!["courses"][j];
+        int req = courses[code]!["prerequisites"].length +
+            courses[code]!["corequisites"].length;
+        int reqFor = courses[code]!["prerequisite_for"].length +
+            courses[code]!["corequisite_for"].length;
+        courseList.add(displayRow(code, req, reqFor));
+        courseList.add(const Divider());
+      }
+      courseList.removeLast();
+      semesterList.add(displaySemester(courseList));
+      semesterList.add(
+        const SizedBox(
+          height: 10,
+        ),
+      );
+    }
+    semesterList.removeLast();
+    return semesterList;
+  }
+
+  Widget displaySemester(List<Widget> child) {
+    return Container(
+        decoration: BoxDecoration(
+            borderRadius: BorderRadius.circular(5),
+            color: Colors.white,
+            boxShadow: const [
+              BoxShadow(
+                  blurRadius: 1, offset: Offset(1, 1), color: Colors.black12)
+            ]),
+        width: MediaQuery.sizeOf(context).width - 30,
+        child: Padding(
+            padding: const EdgeInsets.all(10),
+            child: Column(
+              children: child,
+            )));
+  }
+
+  Widget displayRow(String courseCode, int requisites, int requisitesFor) {
+    return Row(
+      children: [
+        Text(courseCode),
+        const Spacer(),
+        RichText(
+            text: TextSpan(children: [
+          const WidgetSpan(child: Icon(Icons.lock)),
+          TextSpan(text: requisites.toString()),
+          const WidgetSpan(child: Icon(Icons.key)),
+          TextSpan(text: requisitesFor.toString())
+        ])),
+      ],
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Center(
+      child: SingleChildScrollView(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: readDB(),
+        ),
+      ),
+    );
+  }
+}
 
 class ViewSequence extends StatefulWidget {
   const ViewSequence({super.key});
@@ -10,634 +104,6 @@ class ViewSequence extends StatefulWidget {
 class _ViewSequenceState extends State<ViewSequence> {
   @override
   Widget build(BuildContext context) {
-    return Center(
-      child: SingleChildScrollView(
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: <Widget>[
-            Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(1, 1),
-                        color: Colors.black12)
-                  ]),
-              width: MediaQuery.sizeOf(context).width - 30,
-              child: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Text("Y1S1",
-                            style: TextStyle(
-                                color: Colors.black.withOpacity(0.5))),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      children: [
-                        Text("MATE 3031"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("QUIM 3131"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("QUIM 3133"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("INGL 3101"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("CIIC 3015"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(1, 1),
-                        color: Colors.black12)
-                  ]),
-              width: MediaQuery.sizeOf(context).width - 30,
-              child: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Text("Y1S2",
-                            style: TextStyle(
-                                color: Colors.black.withOpacity(0.5))),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      children: [
-                        Text("MATE 3032"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("QUIM 3132"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("QUIM 3134"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("INGL 3102"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("CIIC 3075"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("CIIC 4010"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(1, 1),
-                        color: Colors.black12)
-                  ]),
-              width: MediaQuery.sizeOf(context).width - 30,
-              child: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Text("Y2S1",
-                            style: TextStyle(
-                                color: Colors.black.withOpacity(0.5))),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      children: [
-                        Text("MATE 3063"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("FISI 3171"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("FISI 3173"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("CIIC 4020"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("ESPA 3101"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(1, 1),
-                        color: Colors.black12)
-                  ]),
-              width: MediaQuery.sizeOf(context).width - 30,
-              child: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Text("Y2S2",
-                            style: TextStyle(
-                                color: Colors.black.withOpacity(0.5))),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      children: [
-                        Text("CIIC 4025"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("FISI 3172"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("FISI 3174"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("INEL 3105"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("ESPA 3102"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(1, 1),
-                        color: Colors.black12)
-                  ]),
-              width: MediaQuery.sizeOf(context).width - 30,
-              child: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Text("Y3S1",
-                            style: TextStyle(
-                                color: Colors.black.withOpacity(0.5))),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      children: [
-                        Text("INSO 4101"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("CIIC 3081"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("MATE 4145"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("INEL 4115"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("INGL 3201"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-            Container(
-              decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(5),
-                  color: Colors.white,
-                  boxShadow: [
-                    BoxShadow(
-                        blurRadius: 1,
-                        offset: Offset(1, 1),
-                        color: Colors.black12)
-                  ]),
-              width: MediaQuery.sizeOf(context).width - 30,
-              child: Padding(
-                padding: EdgeInsets.all(10),
-                child: Column(
-                  children: [
-                    Row(
-                      children: [
-                        Text("Y3S2",
-                            style: TextStyle(
-                                color: Colors.black.withOpacity(0.5))),
-                      ],
-                    ),
-                    SizedBox(
-                      height: 5,
-                    ),
-                    Row(
-                      children: [
-                        Text("INGE 3011"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("CIIC 4082"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("CIIC 5---"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("ININ 4010"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                    Divider(),
-                    Row(
-                      children: [
-                        Text("INGL 3202"),
-                        Spacer(),
-                        RichText(
-                            text: TextSpan(children: [
-                          WidgetSpan(child: Icon(Icons.lock)),
-                          TextSpan(text: "1 "),
-                          WidgetSpan(child: Icon(Icons.key)),
-                          TextSpan(text: "0")
-                        ])),
-                      ],
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(
-              height: 10,
-            ),
-          ],
-        ),
-      ),
-    );
+    return DisplaySequence();
   }
 }
