@@ -2,6 +2,8 @@
 
 // import 'dart:js_interop_unsafe';
 
+//import 'dart:core' as core;
+
 import 'package:flutter/material.dart';
 import 'package:url_launcher/link.dart';
 // ------------- For .db file management, storage and queries ------------------
@@ -14,13 +16,15 @@ import 'dart:js_interop';
 import 'dart:js_util';
 import 'custom_sql_javascript_wrapper.dart';
 // import 'package:indexed_db/indexed_db.dart' as idb;
-// package:indexed_db/indexed_db.dart'
+// package:indexed_db/indexed_db.dart';
 // import 'package:web/web.dart' as web;
 // import 'package:sqflite_common_ffi_web/sqflite_ffi_web.dart';
 import 'package:idb_sqflite/idb_sqflite.dart' as idb_sql;
 import 'package:flutter/foundation.dart';
+// Cannot import 'io' package because 'io' doesn't exist for web platforms
 import 'dart:io' as io;
-import 'dart:io' show Platform;
+// import 'dart:io' show Platform;
+import 'Platform_Checker/platform_is.dart';
 import 'package:sqflite/sqflite.dart';
 
 // Downloads the SQLite .db file from GitHub using its raw url
@@ -29,20 +33,19 @@ Future<Uint8List> downloadDatabaseFromGithub() async {
   http.Response response = await http.get(Uri.parse(rawUrl));
   
   if (response.statusCode == 200) {
+    print('Successfully downloaded .db file from Github');
     return response.bodyBytes; // Return the raw bytes of the .db file
   } else {
     throw Exception('Could not download the .db file from Github');
   }
 }
 
-
-// Stores courses.db in the device's "\Databases" directory
-// For Android and IOS 
 Future<void> storeDatabaseInDeviceStorage(Uint8List databaseBytes) async {
   String pathToDatabaseStorage = await getDatabasesPath();
   String dbFilePath = '$pathToDatabaseStorage/courses.db';
   io.File dbFile = io.File(dbFilePath); // specified io due to File Class ambiguity between io.File and web.File 
   await dbFile.writeAsBytes(databaseBytes);
+  print('Successfully stored database in device storage');
 }
 
 
@@ -58,6 +61,7 @@ Future<void> storeDatabaseInIndexedStorage(Uint8List databaseBytes) async {
     onUpgradeNeeded: (idb_sql.VersionChangeEvent event) {
       idb_sql.Database database = event.database;
       database.createObjectStore('localFiles', autoIncrement: true);
+      print('Indexed Database and Object Store created');
     },
   );
 
@@ -68,6 +72,7 @@ Future<void> storeDatabaseInIndexedStorage(Uint8List databaseBytes) async {
   await transaction.completed;
   indexedDatabase.close; 
   // do I need to close or not? Delete if this part causes issues
+  print('Stored courses.db in Indexed Database');
 
 
 
@@ -199,14 +204,31 @@ Future<SqlJsDatabase> getDatabaseForWeb() async {
   idb_sql.ObjectStore store = transaction.objectStore('localFiles');
   Uint8List databaseBytes = store.getObject("courses.db") as Uint8List;
   await transaction.completed;
+  print('Opened Indexed Database for SQL setup');
 
   // Converts the Dart-IndexedDatabase into a Javascript-SQLDatabase for 
   // Javascript SQL query processing at runtime
-  SqlJs sqlJs = await promiseToFuture(initSqlJs({
-    'locateFile': (String file) => 'sql-wasm.wasm',
-  })) as SqlJs;
 
-  return sqlJs.Database(databaseBytes);
+  JSAny? result = initSqlJs({
+    'locateFile': (String file) => 'sql-wasm.wasm',
+  }.jsify());
+
+  SqlJs sqlJs = result as SqlJs;
+
+
+  // final SqlJs sqlJs = (await promiseToFuture(initSqlJs(
+  // js_util.jsify({
+  //   'locateFile': allowInterop((String file) => 'sql-wasm.wasm'),
+  // }),
+  // ))) as SqlJs;
+
+
+  // SqlJs sqlJs = await promiseToFuture(initSqlJs({
+  //   'locateFile': (String file) => 'sql-wasm.wasm',
+  // })) as SqlJs;
+
+  print('Successfully converted database into sqlJsDatabase');
+  return sqlJs.Database(databaseBytes.toJS);
   
 
   
@@ -271,33 +293,68 @@ Future<SqlJsDatabase> getDatabaseForWeb() async {
 
 
 // Converts Javascript object into Dart Maps List
-List<Map<String, dynamic>> convertIntoMapList(List<dynamic> queryResult){
-  if (queryResult.isEmpty) return [];
+List<Map<String, dynamic>> convertIntoMapList(JSArray<JSAny?> queryResult){
 
-  final columns = List<String>.from(queryResult[0]['columns']);
-  final rows = List<List<dynamic>>.from(queryResult[0]['values']);
+  final List<Map<String, dynamic>> resultList = [];
 
-  return rows.map((row) {
-    final Map<String, dynamic> map = {};
-    for (int i = 0; i < columns.length; i++) {
-      map[columns[i]] = row[i];
+  // Convert JSArray to Dart List
+  final resultSets = queryResult.toDart.cast<Object?>();
+
+  if (resultSets.isEmpty) return [];
+
+  final firstResultSet = resultSets.first as JSObject;
+
+  final columns = getProperty(firstResultSet, 'columns') as JSArray;
+  final values = getProperty(firstResultSet, 'values') as JSArray;
+
+  final dartColumns = columns.toDart.cast<String>();
+
+  final rows = values.toDart.cast<List<Object?>>();
+  for (var row in rows) {
+    final rowMap = <String, dynamic>{};
+    for (int i = 0; i < dartColumns.length; i++) {
+      rowMap[dartColumns[i]] = row[i];
     }
-    return map;
-  }).toList();
+    resultList.add(rowMap);
+  }
+
+  return resultList;
+
+
+  // if (queryResult.isEmpty) {
+  //   print('List<Map> conversion - Query result is empty');
+  //   return [];
+  // }
+
+  // final columns = List<String>.from(queryResult[0]['columns']);
+  // final rows = List<List<dynamic>>.from(queryResult[0]['values']);
+
+  // print('List<Map> conversion - Query result not empty');
+  // return rows.map((row) {
+  //   final Map<String, dynamic> map = {};
+  //   for (int i = 0; i < columns.length; i++) {
+  //     map[columns[i]] = row[i];
+  //   }
+  //   return map;
+  // }).toList();
 }
 
 
 // Queries the database for all the data records within a specified table (with all their fields (columns))
 Future<Object> getAllRecordsFromDB(String tableName) async {
+  print('Getting all records from $tableName table...');
   List<Map<String, dynamic>> result = [];
   if (kIsWeb){
+    print('Identified web platform');
     SqlJsDatabase webDatabase = await getDatabaseForWeb(); 
-    List<dynamic> jsResult = webDatabase.exec('SELECT * FROM $tableName');
+    JSArray<JSAny?> jsResult = webDatabase.exec('SELECT * FROM $tableName');
+    // List<dynamic> jsResult
     // List<dynamic> - JS-specific object
     result = convertIntoMapList(jsResult);
     webDatabase.close();
   }
-  else if (Platform.isAndroid || Platform.isIOS) {
+  else if (PlatformIs.android || PlatformIs.iOS) {
+    print('Identified mobile device');
     String pathToDatabaseStorage = await getDatabasesPath();
     Database database = await openDatabase('$pathToDatabaseStorage/courses.db');
     result = await database.rawQuery('SELECT * FROM $tableName');
@@ -306,7 +363,8 @@ Future<Object> getAllRecordsFromDB(String tableName) async {
   }
 
   if (result.isNotEmpty) {
-      return result;
+    print('Successfully retreived query result!');
+    return result;
   }
   else {
     // print('Table $tableName not found in courses.db');
@@ -317,15 +375,19 @@ Future<Object> getAllRecordsFromDB(String tableName) async {
 
 // Queries the database for all the data records within a specified column 
 Future<List<Map<String, dynamic>>> getAllRecordsFromDBColumn(String tableName, String columnName) async {
+  print('Getting all records from column $columnName in $tableName table...');
   List<Map<String, dynamic>> result = [];
   if (kIsWeb){
+    print('Identified web platform');
     SqlJsDatabase webDatabase = await getDatabaseForWeb(); 
-    List<dynamic> jsResult = webDatabase.exec('SELECT $columnName FROM $tableName');
+    JSArray<JSAny?> jsResult = webDatabase.exec('SELECT $columnName FROM $tableName');
+    // List<dynamic> jsResult
     // List<dynamic> - JS-specific object
     result = convertIntoMapList(jsResult);
     webDatabase.close();
   }
-  else if (Platform.isAndroid || Platform.isIOS) {
+  else if (PlatformIs.android || PlatformIs.iOS) {
+    print('Identified mobile device');
     String pathToDatabaseStorage = await getDatabasesPath();
     Database database = await openDatabase('$pathToDatabaseStorage/courses.db');
     result = await database.rawQuery('SELECT $columnName FROM $tableName');
@@ -334,7 +396,8 @@ Future<List<Map<String, dynamic>>> getAllRecordsFromDBColumn(String tableName, S
   }
 
   if (result.isNotEmpty) {
-      return result;
+    print('Successfully retreived query result!');
+    return result;
   }
   else {
     // print('Column $columnName not found in $tableName table');
@@ -345,8 +408,10 @@ Future<List<Map<String, dynamic>>> getAllRecordsFromDBColumn(String tableName, S
 
 // Queries the database for a specific data element 
 Future<List<Map<String, dynamic>>> getDataFromDB(String tableName, String columnName, dynamic data) async {
+  print('Getting $columnName : $data from $tableName table...');
   List<Map<String, dynamic>> result = [];
   if (kIsWeb) {
+    print('Identified web platform');
     if (data is String){
       data = "'${data.replaceAll("'", "''")}'"; // Escapes the String's single quotes
     }
@@ -354,12 +419,14 @@ Future<List<Map<String, dynamic>>> getDataFromDB(String tableName, String column
       data = data.toString(); // Still converts to String so that the exec() query can process it
     }
     SqlJsDatabase webDatabase = await getDatabaseForWeb(); 
-    List<dynamic> jsResult = webDatabase.exec('SELECT * FROM $tableName WHERE $columnName = $data');
+    JSArray<JSAny?> jsResult = webDatabase.exec('SELECT * FROM $tableName WHERE $columnName = $data');
+    // List<dynamic> jsResult
     // List<dynamic> - JS-specific object
     result = convertIntoMapList(jsResult);
     webDatabase.close();
   }
-  else if (Platform.isAndroid || Platform.isIOS) {
+  else if (PlatformIs.android || PlatformIs.iOS) {
+    print('Identified mobile device');
     String pathToDatabaseStorage = await getDatabasesPath();
     Database database = await openDatabase('$pathToDatabaseStorage/courses.db');
     result = await database.rawQuery('SELECT * FROM $tableName WHERE $columnName = ?', [data]);
@@ -368,7 +435,8 @@ Future<List<Map<String, dynamic>>> getDataFromDB(String tableName, String column
   }
 
   if (result.isNotEmpty) {
-      return result;
+    print('Successfully retreived query result!');
+    return result;
   }
   else {
     // print('$columnName : $data not found in $tableName table');
@@ -377,14 +445,14 @@ Future<List<Map<String, dynamic>>> getDataFromDB(String tableName, String column
 }
 
 
-class UpdateProgress extends StatefulWidget {
-  const UpdateProgress({super.key});
+class DataExtraction extends StatefulWidget {
+  const DataExtraction({super.key});
 
   @override
-  State<UpdateProgress> createState() => _UpdateProgressState();
+  State<DataExtraction> createState() => _DataExtractionState();
 }
 
-class _UpdateProgressState extends State<UpdateProgress> {
+class _DataExtractionState extends State<DataExtraction> {
   @override
   void initState() {
     super.initState();
@@ -394,8 +462,10 @@ class _UpdateProgressState extends State<UpdateProgress> {
 
   // Download the database and store it in persistent storage when the app starts
   Future<void> _setupPersistentStorage() async {
+    print('Started initial database setup...');
     // Check if the device is a web platform (browser) 
     if (kIsWeb) {
+      print('Using web platform');
       // Check if the database has already been downloaded and stored in Indexed Storage
       try {
         // indexedStorage = window.indexedDB.open("User_Indexed_Storage", version: 1);
@@ -403,15 +473,17 @@ class _UpdateProgressState extends State<UpdateProgress> {
         await idbFactory.open('User_Indexed_Storage');
 
       } catch (e) {
+        print('Indexed Database has not been previously created. Creating Indexed Database...');
         Uint8List databaseBytes = await downloadDatabaseFromGithub();
         await storeDatabaseInIndexedStorage(databaseBytes);
       }
     }
     // Check if the device is Android or IOS (mobile)
-    else if (Platform.isAndroid || Platform.isIOS){
-      // Check if the database has already been downloaded and stored in the device's "/Databases" directory
+    else if (PlatformIs.android || PlatformIs.iOS) {
+      print('Using mobile device');
       String pathToDatabaseStorage = await getDatabasesPath();
       if (!(await io.File('$pathToDatabaseStorage/courses.db').exists())) {
+        print('Database not previously stored in device storage. Downloading database into device storage...');
         Uint8List databaseBytes = await downloadDatabaseFromGithub();
         await storeDatabaseInDeviceStorage(databaseBytes);
       }
@@ -426,7 +498,7 @@ class _UpdateProgressState extends State<UpdateProgress> {
         mainAxisAlignment: MainAxisAlignment.center,
         children: <Widget>[
           const Text(
-            'This is the Update Progress Page',
+            'This is the Update Progress - Data Extraction Page',
           ),
           const Text("(MOCKUP)"),
           const Text("Your current plan for the next semester is:\n"
