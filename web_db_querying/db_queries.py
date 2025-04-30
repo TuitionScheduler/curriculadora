@@ -4,6 +4,7 @@ import os
 
 app = FastAPI()
 
+#
 # Use Heroku PostgreSQL connection
 postgres_url = os.environ["DATABASE_URL"]
 if postgres_url.startswith("postgres://"):
