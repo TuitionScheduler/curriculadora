@@ -1,11 +1,15 @@
 from fastapi import FastAPI, HTTPException
 from sqlalchemy import create_engine, text
+import os
 
 app = FastAPI()
 
-# Adjust path to go from /web_db_querying/ to /data/database/
-engine = create_engine("sqlite:///data/database/courses.db", connect_args={"check_same_thread": False})
+# Use Heroku PostgreSQL connection
+postgres_url = os.environ["DATABASE_URL"]
+if postgres_url.startswith("postgres://"):
+    postgres_url = postgres_url.replace("postgres://", "postgresql://", 1)
 
+engine = create_engine(postgres_url)
 @app.get("/table/{table_name}/{column_name}/{value}")
 def query_by_column_value(table_name: str, column_name: str, value: str):
     try:
@@ -42,7 +46,9 @@ def query_table(table_name: str):
 @app.get("/tables")
 def list_tables():
     with engine.connect() as conn:
-        result = conn.execute(text("SELECT name FROM sqlite_master WHERE type='table';"))
+        result = conn.execute(text(
+            "SELECT table_name FROM information_schema.tables WHERE table_schema='public' AND table_type='BASE TABLE';"
+        ))
         return [row[0] for row in result]
 
 @app.get("/query")
