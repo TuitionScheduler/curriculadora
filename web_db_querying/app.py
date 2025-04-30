@@ -22,6 +22,11 @@ from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 
 Base = declarative_base()
 
+def chunked_commit(session, records, chunk_size=500):
+    for i in range(0, len(records), chunk_size):
+        session.add_all(records[i:i + chunk_size])
+        session.commit()
+
 print("Starting migration script...")
 print("Creating tables...")
 
@@ -202,7 +207,7 @@ try:
         program_list.append(program)
 
     # Insert data into PostgreSQL
-    session.add_all(program_list)
+    chunked_commit(session, program_list)
 
 
 
@@ -231,7 +236,7 @@ try:
         
         course_list.append(course)
 
-    session.add_all(course_list)
+    chunked_commit(session, course_list)
 
 
 
@@ -261,7 +266,7 @@ try:
         
         section_list.append(section)
 
-    session.add_all(section_list)
+    chunked_commit(session, section_list)
 
 
 
@@ -287,7 +292,7 @@ try:
         
         meeting_list.append(meeting)
 
-    session.add_all(meeting_list)
+    chunked_commit(session, meeting_list)
 
 
 
@@ -324,7 +329,7 @@ try:
         
         grade_distribution_list.append(grade_distribution)
 
-    session.add_all(grade_distribution_list)
+    chunked_commit(session, grade_distribution_list)
 
     print("Commiting Session...")
     # Commit inserted data to PostgreSQL
