@@ -3,6 +3,8 @@
 # from sqlalchemy.ext.declarative import declarative_base
 # from sqlalchemy.orm import sessionmaker, relationship
 
+import os
+import sys
 import sqlite3
 from sqlalchemy import (
     Boolean,
@@ -13,6 +15,7 @@ from sqlalchemy import (
     String,
     Index,
     UniqueConstraint,
+    text,
 )
 from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 
@@ -129,13 +132,21 @@ class GradeDistribution(Base):
 
 
 # Setup SQLAlchemy PostgreSQL connection
-postgres_url = "postgresql://username:password@localhost/dbname"
-https://curriculadora-db-app-c1d0a13ccbf0.herokuapp.com/
+postgres_url = os.environ["DATABASE_URL"]
+#https://curriculadora-db-app-c1d0a13ccbf0.herokuapp.com/
+if postgres_url.startswith("postgres://"):
+    postgres_url = postgres_url.replace("postgres://", "postgresql://", 1)
 engine = create_engine(postgres_url)
 Base.metadata.create_all(engine)
 
+# Check if SQLite file exists
+sqlite_url = "data/database/courses.db"
+if not os.path.exists(sqlite_url):
+    print(f"Error: SQLite file not found at {sqlite_url}")
+    sys.exit(1)
+
 # SQLite connection
-sqlite_url = "sqlite:///path_to_your_file.db"
+sqlite_url = "data/database/courses.db"
 sqlite_conn = sqlite3.connect(sqlite_url)
 cursor = sqlite_conn.cursor()
 
@@ -143,168 +154,177 @@ cursor = sqlite_conn.cursor()
 Session = sessionmaker(bind=engine)
 session = Session()
 
-
-
-
-
-# Excecute query for programs table
-cursor.execute("SELECT " \
-"code, name, degree_type, credits, courses, english, spanish, humanities, " \
-"social, sociohumanistics, technical, technical_courses, free, kinesiology, longest_path " \
-" FROM programs")
-program_rows = cursor.fetchall()
-
-program_list = []
-
-for row in program_rows:
-    program = Program(
-
-        code=row[0],
-        name=row[1],
-        degree_type=row[2],
-        credits=row[3],
-        courses=row[4],
-        english=row[5],
-        spanish=row[6],
-        humanities=row[7],
-        social=row[8],
-        sociohumanistics=row[9],
-        technical=row[10],
-        technical_courses=row[11],
-        free=row[12],
-        kinesiology=row[13],
-        longest_path=row[14])
-    
-    program_list.append(program)
-
-# Insert data into PostgreSQL
-session.add_all(program_list)
-
-
-
-
-# Excecute query for courses table
-cursor.execute("SELECT " \
-"cid, course_code, course_name, year, term, credits, department, prerequisites, corequisites, " \
-"difficulty, " \
-" FROM courses")
-course_rows = cursor.fetchall()
-
-course_list = []
-
-for row in course_rows:
-    course = Course(
-
-        course_code=row[1],
-        course_name=row[2],
-        year=row[3],
-        term=row[4],
-        credits=row[5],
-        department=row[6],
-        prerequisites=row[7],
-        corequisites=row[8],
-        difficulty=row[9])
-    
-    course_list.append(course)
-
-session.add_all(course_list)
-
-
-
-
-
-# Excecute query for sections table
-cursor.execute("SELECT " \
-"sid, section_code, meetings_text, modality, capacity, taken, reserved, professors, misc, " \
-"cid, " \
-" FROM sections")
-section_rows = cursor.fetchall()
-
-section_list = []
-
-for row in section_rows:
-    section = Section(
-
-        section_code=row[1],
-        meetings_text=row[2],
-        modality=row[3],
-        capacity=row[4],
-        taken=row[5],
-        reserved=row[6],
-        professors=row[7],
-        misc=row[8], 
-        cid=row[9])
-    
-    section_list.append(section)
-
-session.add_all(section_list)
-
-
-
-
-
-# Execute query for meetings table
-cursor.execute("SELECT " \
-"mid, building, room, days, start_time, end_time, sid " \
-" FROM meetings")
-meeting_rows = cursor.fetchall()
-
-meeting_list = []
-
-for row in meeting_rows:
-    meeting = Meeting(
-
-        building=row[1],
-        room=row[2],
-        days=row[3],
-        start_time=row[4],
-        end_time=row[5],
-        sid=row[6])
-    
-    meeting_list.append(meeting)
-
-session.add_all(meeting_list)
-
-
-
-
-
-# Excecute query for grade_distributions table
-cursor.execute("SELECT " \
-"tid, sid, A, B, C, D, F, " \
-"I, IA, IB, IC, ID, IF, NS, P, S, W " \
-" FROM grade_distributions")
-grade_distribution_rows = cursor.fetchall()
-
-grade_distribution_list = []
-
-for row in grade_distribution_rows:
-    grade_distribution = GradeDistribution(
-
-        sid=row[1],
-        A=row[2],
-        B=row[3],
-        C=row[4],
-        D=row[5],
-        F=row[6],
-        I=row[7],
-        IA=row[8],
-        IB=row[9],
-        IC=row[10],
-        ID=row[11],
-        IF=row[12],
-        NS=row[13],
-        P=row[14],
-        S=row[15],
-        W=row[16])
-    
-    grade_distribution_list.append(grade_distribution)
-
-session.add_all(grade_distribution_list)
-
-# Commit inserted data to PostgreSQL
+# TRUNCATE existing data to ensure clean replacement
+session.execute(text("TRUNCATE grade_distributions, meetings, sections, courses, programs RESTART IDENTITY CASCADE"))
 session.commit()
 
-# Clean up
-session.close()
-sqlite_conn.close()
+
+try:
+    # Excecute query for programs table
+    cursor.execute("SELECT " \
+    "code, name, degree_type, credits, courses, english, spanish, humanities, " \
+    "social, sociohumanistics, technical, technical_courses, free, kinesiology, longest_path " \
+    " FROM programs")
+    program_rows = cursor.fetchall()
+
+    program_list = []
+
+    for row in program_rows:
+        program = Program(
+
+            code=row[0],
+            name=row[1],
+            degree_type=row[2],
+            credits=row[3],
+            courses=row[4],
+            english=row[5],
+            spanish=row[6],
+            humanities=row[7],
+            social=row[8],
+            sociohumanistics=row[9],
+            technical=row[10],
+            technical_courses=row[11],
+            free=row[12],
+            kinesiology=row[13],
+            longest_path=row[14])
+        
+        program_list.append(program)
+
+    # Insert data into PostgreSQL
+    session.add_all(program_list)
+
+
+
+
+    # Excecute query for courses table
+    cursor.execute("SELECT " \
+    "cid, course_code, course_name, year, term, credits, department, prerequisites, corequisites, " \
+    "difficulty " \
+    " FROM courses")
+    course_rows = cursor.fetchall()
+
+    course_list = []
+
+    for row in course_rows:
+        course = Course(
+
+            course_code=row[1],
+            course_name=row[2],
+            year=row[3],
+            term=row[4],
+            credits=row[5],
+            department=row[6],
+            prerequisites=row[7],
+            corequisites=row[8],
+            difficulty=row[9])
+        
+        course_list.append(course)
+
+    session.add_all(course_list)
+
+
+
+
+
+    # Excecute query for sections table
+    cursor.execute("SELECT " \
+    "sid, section_code, meetings_text, modality, capacity, taken, reserved, professors, misc, " \
+    "cid " \
+    " FROM sections")
+    section_rows = cursor.fetchall()
+
+    section_list = []
+
+    for row in section_rows:
+        section = Section(
+
+            section_code=row[1],
+            meetings_text=row[2],
+            modality=row[3],
+            capacity=row[4],
+            taken=row[5],
+            reserved=row[6],
+            professors=row[7],
+            misc=row[8], 
+            cid=row[9])
+        
+        section_list.append(section)
+
+    session.add_all(section_list)
+
+
+
+
+
+    # Execute query for meetings table
+    cursor.execute("SELECT " \
+    "mid, building, room, days, start_time, end_time, sid " \
+    " FROM meetings")
+    meeting_rows = cursor.fetchall()
+
+    meeting_list = []
+
+    for row in meeting_rows:
+        meeting = Meeting(
+
+            building=row[1],
+            room=row[2],
+            days=row[3],
+            start_time=row[4],
+            end_time=row[5],
+            sid=row[6])
+        
+        meeting_list.append(meeting)
+
+    session.add_all(meeting_list)
+
+
+
+
+
+    # Excecute query for grade_distributions table
+    cursor.execute("SELECT " \
+    "tid, sid, A, B, C, D, F, " \
+    "I, IA, IB, IC, ID, IF, NS, P, S, W " \
+    " FROM grade_distributions")
+    grade_distribution_rows = cursor.fetchall()
+
+    grade_distribution_list = []
+
+    for row in grade_distribution_rows:
+        grade_distribution = GradeDistribution(
+
+            sid=row[1],
+            A=row[2],
+            B=row[3],
+            C=row[4],
+            D=row[5],
+            F=row[6],
+            I=row[7],
+            IA=row[8],
+            IB=row[9],
+            IC=row[10],
+            ID=row[11],
+            IF=row[12],
+            NS=row[13],
+            P=row[14],
+            S=row[15],
+            W=row[16])
+        
+        grade_distribution_list.append(grade_distribution)
+
+    session.add_all(grade_distribution_list)
+
+    # Commit inserted data to PostgreSQL
+    session.commit()
+
+except Exception as e:
+    session.rollback()
+    print(f"Error during migration: {e}")
+    sys.exit(1)
+
+finally:
+    # Clean up
+    session.close()
+    sqlite_conn.close()
+    print("Migration completed successfully.")
