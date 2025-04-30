@@ -21,6 +21,8 @@ from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 
 Base = declarative_base()
 
+print("Starting migration script...")
+
 class Program(Base):
     __tablename__ = "programs"
     code = Column(String(5), primary_key=True, nullable=False)
