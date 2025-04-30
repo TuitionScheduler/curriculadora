@@ -35,7 +35,7 @@ def query_by_column_value(table_name: str, column_name: str, value: str):
 def query_by_column(table_name: str, column_name: str):
     try:
         with engine.connect() as conn:
-            query = text(f"SELECT {column_name} FROM {table_name}")
+            query = text(f"SELECT {column_name} FROM {table_name} LIMIT 10")
             result = conn.execute(query)
             return [dict(row._mapping) for row in result]
     except Exception as e:
