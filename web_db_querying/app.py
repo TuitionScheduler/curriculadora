@@ -22,6 +22,7 @@ from sqlalchemy.orm import relationship, declarative_base, sessionmaker
 Base = declarative_base()
 
 print("Starting migration script...")
+print("Creating tables...")
 
 class Program(Base):
     __tablename__ = "programs"
@@ -134,6 +135,8 @@ class GradeDistribution(Base):
 
     section = relationship("Section", back_populates="grade_distributions")
 
+print("Tables Created.")
+print("Setting Up SQLAlchemy PostgreSQL connection...")
 
 # Setup SQLAlchemy PostgreSQL connection
 postgres_url = os.environ["DATABASE_URL"]
@@ -143,17 +146,24 @@ if postgres_url.startswith("postgres://"):
 engine = create_engine(postgres_url)
 Base.metadata.create_all(engine)
 
+print("SQLAlchemy PostgreSQL connection established.")
+
 # Check if SQLite file exists
 sqlite_url = "data/database/courses.db"
 if not os.path.exists(sqlite_url):
     print(f"Error: SQLite file not found at {sqlite_url}")
     sys.exit(1)
 
+print("Setting Up SQLite connection...")
+
 # SQLite connection
 sqlite_url = "data/database/courses.db"
 sqlite_conn = sqlite3.connect(sqlite_url)
 cursor = sqlite_conn.cursor()
 
+print("SQLite connection established.")
+
+print("Setting Up Sesion...")
 # Setup SQLAlchemy session for PostgreSQL
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -164,6 +174,7 @@ session.commit()
 
 
 try:
+    print("Executing Program queries...")
     # Excecute query for programs table
     cursor.execute("SELECT " \
     "code, name, degree_type, credits, courses, english, spanish, humanities, " \
@@ -199,7 +210,7 @@ try:
 
 
 
-
+    print("Executing Course queries...")
     # Excecute query for courses table
     cursor.execute("SELECT " \
     "cid, course_code, course_name, year, term, credits, department, prerequisites, corequisites, " \
@@ -229,7 +240,7 @@ try:
 
 
 
-
+    print("Executing Section queries...")
     # Excecute query for sections table
     cursor.execute("SELECT " \
     "sid, section_code, meetings_text, modality, capacity, taken, reserved, professors, misc, " \
@@ -259,7 +270,7 @@ try:
 
 
 
-
+    print("Executing Meeting queries...")
     # Execute query for meetings table
     cursor.execute("SELECT " \
     "mid, building, room, days, start_time, end_time, sid " \
@@ -285,7 +296,7 @@ try:
 
 
 
-
+    print("Executing Grade Distribution queries...")
     # Excecute query for grade_distributions table
     cursor.execute("SELECT " \
     "tid, sid, A, B, C, D, F, " \
