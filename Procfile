@@ -1,0 +1,1 @@
+web: uvicorn web_db_querying.db_queries:app --host=0.0.0.0 --port=${PORT:-5000}
