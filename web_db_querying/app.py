@@ -47,6 +47,8 @@ class Course(Base):
     course_name = Column(String)
     year = Column(Integer, nullable=False)
     term = Column(String, nullable=False)
+    last_Fall = Column(Integer)
+    last_Spring = Column(Integer)
     credits = Column(Integer)
     department = Column(String)
     prerequisites = Column(String)
@@ -89,7 +91,7 @@ class Section(Base):
     # Define a one-to-many relationship between Section and GradeDistribution
     grade_distributions = relationship("GradeDistribution", back_populates="section")
 
-    __table_args__ = (UniqueConstraint("section_code", "cid", name="unique_sections"),)
+    __table_args__ = (UniqueConstraint("sid", "cid", name="unique_sections"),)
 
 
 class Meeting(Base):
@@ -317,6 +319,7 @@ try:
 
     # Commit inserted data to PostgreSQL
     session.commit()
+    print("Migration completed successfully.")
 
 except Exception as e:
     session.rollback()
@@ -327,4 +330,3 @@ finally:
     # Clean up
     session.close()
     sqlite_conn.close()
-    print("Migration completed successfully.")
