@@ -6,6 +6,7 @@
 import os
 import sys
 import sqlite3
+import traceback
 from sqlalchemy import (
     Boolean,
     ForeignKey,
@@ -135,7 +136,6 @@ class GradeDistribution(Base):
 
     section = relationship("Section", back_populates="grade_distributions")
 
-print("Tables Created.")
 print("Setting Up SQLAlchemy PostgreSQL connection...")
 
 # Setup SQLAlchemy PostgreSQL connection
@@ -146,10 +146,9 @@ if postgres_url.startswith("postgres://"):
 engine = create_engine(postgres_url)
 Base.metadata.create_all(engine)
 
-print("SQLAlchemy PostgreSQL connection established.")
-
 # Check if SQLite file exists
 sqlite_url = "data/database/courses.db"
+
 if not os.path.exists(sqlite_url):
     print(f"Error: SQLite file not found at {sqlite_url}")
     sys.exit(1)
@@ -157,13 +156,10 @@ if not os.path.exists(sqlite_url):
 print("Setting Up SQLite connection...")
 
 # SQLite connection
-sqlite_url = "data/database/courses.db"
 sqlite_conn = sqlite3.connect(sqlite_url)
 cursor = sqlite_conn.cursor()
 
-print("SQLite connection established.")
-
-print("Setting Up Sesion...")
+print("Setting Up Session...")
 # Setup SQLAlchemy session for PostgreSQL
 Session = sessionmaker(bind=engine)
 session = Session()
@@ -330,13 +326,15 @@ try:
 
     session.add_all(grade_distribution_list)
 
+    print("Commiting Session...")
     # Commit inserted data to PostgreSQL
     session.commit()
     print("Migration completed successfully.")
 
 except Exception as e:
     session.rollback()
-    print(f"Error during migration: {e}")
+    print("Error during migration:")
+    traceback.print_exc()
     sys.exit(1)
 
 finally:
