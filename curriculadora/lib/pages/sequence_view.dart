@@ -18,7 +18,8 @@ class _DisplaySequenceState extends State<DisplaySequence> {
       List<Widget> courseList = [];
       courseList.add(Row(
         children: [
-          Text(term, style: TextStyle(color: Colors.black.withOpacity(0.5))),
+          Text(term,
+              style: TextStyle(color: Colors.black.withValues(alpha: 0.5))),
         ],
       ));
       courseList.add(

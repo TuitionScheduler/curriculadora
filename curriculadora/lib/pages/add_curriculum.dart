@@ -1,13 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
-class AddCurriculum extends StatefulWidget {
-  const AddCurriculum({super.key});
-
-  @override
-  State<AddCurriculum> createState() => _AddCurriculumState();
-}
-
 class DegreeForm extends StatefulWidget {
   final int index;
 
@@ -176,6 +169,22 @@ class _DegreeFormState extends State<DegreeForm> {
   }
 }
 
+class AddCurriculum extends StatefulWidget {
+  final int page;
+  final Map<String, dynamic> formData;
+  final Function(int newPage) changePage;
+  final Function(Map<String, dynamic> formData) saveFormCurriculum;
+  const AddCurriculum(
+      {super.key,
+      required this.page,
+      required this.formData,
+      required this.changePage,
+      required this.saveFormCurriculum});
+
+  @override
+  State<AddCurriculum> createState() => _AddCurriculumState();
+}
+
 class _AddCurriculumState extends State<AddCurriculum> {
   final _formKey = GlobalKey<FormBuilderState>();
   List<String> program = ["CIIC", "INSO", "ICOM", "INEL", "ININ"];
@@ -184,6 +193,7 @@ class _AddCurriculumState extends State<AddCurriculum> {
   List<String> year = ["Y1", "Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9"];
   List<String> difficulty = ["Flat", "Increasing", "Decreasing"];
   late Map<String, dynamic> formData = {};
+
   // List<DegreeForm> degreeList = <DegreeForm>[];
 
   // void unregisterDegree(int i) {
@@ -205,6 +215,9 @@ class _AddCurriculumState extends State<AddCurriculum> {
 
   @override
   Widget build(BuildContext context) {
+    if (widget.formData.entries.isNotEmpty) {
+      _formKey.currentState?.patchValue(widget.formData);
+    }
     return FormBuilder(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUnfocus,
@@ -290,6 +303,14 @@ class _AddCurriculumState extends State<AddCurriculum> {
                       SnackBar(content: Text(formData.toString())));
                 },
                 child: Text("Save")),
+            ElevatedButton(
+                onPressed: () {
+                  _formKey.currentState?.save();
+                  formData = _formKey.currentState!.value;
+                  widget.saveFormCurriculum(formData);
+                  widget.changePage(1);
+                },
+                child: Text("Next"))
           ],
         ),
       ),

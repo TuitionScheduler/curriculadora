@@ -1,4 +1,5 @@
-import 'package:curriculadora/pages/add_curriculum.dart';
+// import 'package:curriculadora/pages/add_curriculum.dart';
+import 'package:curriculadora/pages/add_curriculum_page.dart';
 import 'package:curriculadora/pages/generate_sequence.dart';
 import 'package:curriculadora/pages/sequence_view.dart';
 import 'package:curriculadora/pages/update_progress.dart';
@@ -23,7 +24,9 @@ enum CurriculadoraPage {
       case CurriculadoraPage.dataExtraction:
         return DataExtraction();
       case CurriculadoraPage.addCurriculum:
-        return AddCurriculum();
+        // return AddCurriculum();
+        // return AddCurriculumCourses();
+        return AddCurriculumPage();
     }
   }
 }

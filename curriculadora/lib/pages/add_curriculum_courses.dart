@@ -22,7 +22,16 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 // }
 
 class AddCurriculumCourses extends StatefulWidget {
-  const AddCurriculumCourses({super.key});
+  final int page;
+  final Map<String, dynamic> formData;
+  final Function(int newPage) changePage;
+  final Function(Map<String, dynamic> formData) saveFormCourses;
+  const AddCurriculumCourses(
+      {super.key,
+      required this.page,
+      required this.formData,
+      required this.changePage,
+      required this.saveFormCourses});
 
   @override
   State<AddCurriculumCourses> createState() => _AddCurriculumCoursesState();
@@ -90,6 +99,22 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
                       SnackBar(content: Text(formData.toString())));
                 },
                 child: const Text("Save")),
+            ElevatedButton(
+                onPressed: () {
+                  _formKey.currentState?.save();
+                  formData = _formKey.currentState!.value;
+                  widget.saveFormCourses(formData);
+                  widget.changePage(0);
+                },
+                child: Text("Prev")),
+            ElevatedButton(
+                onPressed: () {
+                  _formKey.currentState?.save();
+                  formData = _formKey.currentState!.value;
+                  widget.saveFormCourses(formData);
+                  widget.changePage(2);
+                },
+                child: Text("Next"))
           ],
         )));
   }
