@@ -8,7 +8,9 @@ import 'package:flutter/material.dart';
 import 'package:url_launcher/link.dart';
 // ------------- For .db file management, storage and queries ------------------
 import 'dart:async';
-// import 'package:http/http.dart' as http;
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'dart:js_interop';
 // import 'package:web/helpers.dart';
 // import 'package:indexed_db/indexed_db.dart' as idb;
 import 'package:flutter/foundation.dart';
@@ -23,6 +25,60 @@ import 'Platform_Checker/platform_is.dart';
 
 import 'data_extraction_wrapper.dart' as wrapper;
 
+
+
+// Queries the database for all the data records within a specified table (with all their fields (columns))
+Future<List<Map<String, dynamic>>> getAllRecordsFromDBColumn(String tableName, String columnName) async {
+  print('Getting all records from $tableName table...');
+  // if (kIsWeb){
+  //   print('Identified web platform');
+  //   result = await getAllRecordsFromDBWeb(tableName);
+  //   print('Web Query Result is of type ${result.runtimeType}');
+  // }
+  // else if (PlatformIs.android || PlatformIs.iOS) {
+  //   print('Identified mobile device');
+  //   result = await getAllRecordsFromDBMobile(tableName);
+  //   print('Mobile Query Result is of type ${result.runtimeType}');
+  // }
+
+  String backendAppUrl = 'https://curriculadora-db-app-c1d0a13ccbf0.herokuapp.com';
+
+  // http.Response response = await http.get(Uri.parse('$backendAppUrl/query?table=tableName&column=columnName'));
+  http.Response response = await http.get(Uri.parse('$backendAppUrl/table/$tableName/$columnName'));
+
+  if (response.statusCode == 200) {
+    print('Successfully returned HTTP query response!');
+  } // else {
+  //   throw Exception('Http request failed with status: ${response.statusCode}: ${response.reasonPhrase}');
+  // }
+
+  final jsonResponse = response.body;
+  if (jsonResponse is Map){
+    print('$jsonResponse is a Map');
+  }
+  else {
+    print('$jsonResponse is not a Map');
+  }
+  // List<dynamic> list = jsonResponse JSArrayToList.toDart();
+  List<dynamic> responseList = jsonDecode(jsonResponse);
+  List<Map<String, dynamic>> result = responseList
+    .map((item) => item as Map<String, dynamic>)
+    .toList();
+  // List<Map<String, dynamic>> result = responseList as List<Map<String, dynamic>>;
+  return result;
+  
+
+  // if (result.isNotEmpty) {
+  //   print('Successfully retreived query result!');
+  //   return result;
+  // }
+  // else {
+  //   // print('Table $tableName not found in courses.db');
+  //   throw Exception('Table $tableName not found in courses.db'); 
+  // }
+}
+
+  
 
 
 // // Downloads the SQLite .db file from GitHub using its raw url
@@ -124,30 +180,30 @@ class _DataExtractionState extends State<DataExtraction> {
   @override
   void initState() {
     super.initState();
-    _setupPersistentStorage();
+    // _setupPersistentStorage();
   }
 
 
   // Download the database and store it in persistent storage when the app starts
-  Future<void> _setupPersistentStorage() async {
-    print('Started initial database setup...');
-    // Check if the device is a web platform (browser) 
-    // Check if the device is Android or IOS (mobile)
-    if (PlatformIs.android || PlatformIs.iOS) {
-      print('Using mobile device');
-      wrapper.checkIfDatabaseStoredInDeviceStorage();
-    }    
+  // Future<void> _setupPersistentStorage() async {
+  //   print('Started initial database setup...');
+  //   // Check if the device is a web platform (browser) 
+  //   // Check if the device is Android or IOS (mobile)
+  //   if (PlatformIs.android || PlatformIs.iOS) {
+  //     print('Using mobile device');
+  //     wrapper.checkIfDatabaseStoredInDeviceStorage();
+  //   }    
 
-    // if (kIsWeb) {
-    //   print('Using web platform');
-    //   checkIfDatabaseStoredInIndexedStorage();
-    // }
-    // // Check if the device is Android or IOS (mobile)
-    // else if (PlatformIs.android || PlatformIs.iOS) {
-    //   print('Using mobile device');
-    //   checkIfDatabaseStoredInDeviceStorage();
-    // }   
-  }
+  //   // if (kIsWeb) {
+  //   //   print('Using web platform');
+  //   //   checkIfDatabaseStoredInIndexedStorage();
+  //   // }
+  //   // // Check if the device is Android or IOS (mobile)
+  //   // else if (PlatformIs.android || PlatformIs.iOS) {
+  //   //   print('Using mobile device');
+  //   //   checkIfDatabaseStoredInDeviceStorage();
+  //   // }   
+  // }
 
   List<Map<String, dynamic>> _dbResults = [];
   bool _loading = false;
@@ -159,7 +215,7 @@ class _DataExtractionState extends State<DataExtraction> {
 
     // Replace with your real function and table name
     List<Map<String, dynamic>> results =
-        await wrapper.getAllRecordsFromDBMobile('programs');
+        await getAllRecordsFromDBColumn('courses', 'course_code');
 
     setState(() {
       _dbResults = results;

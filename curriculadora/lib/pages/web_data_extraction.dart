@@ -333,9 +333,10 @@ List<Map<String, dynamic>> convertIntoMapList(JSArray<JSAny?> queryResult) {
 //   }).toList();
 // }
 
+
 // Future<List<Map<String, dynamic>>> getAllRecordsFromDBWeb(String tableName) async {
 //   print("Getting all data records from $tableName table...");
-//   SqlJsDatabase webDatabase = await getDatabaseForWeb();
+//   SqlJsDatabase webDatabase = await getDatabaseForWeb(); 
 //   print("Starting query execution...");
 //   // List<dynamic> jsResult = webDatabase.exec('SELECT * FROM $tableName');
 //   JSArray<JSAny?> jsResult = webDatabase.exec('SELECT * FROM $tableName');
@@ -345,6 +346,7 @@ List<Map<String, dynamic>> convertIntoMapList(JSArray<JSAny?> queryResult) {
 //   webDatabase.close();
 //   return convertIntoMapList(jsResult);
 // }
+
 
 // Future<List<Map<String, dynamic>>> getAllRecordsFromDBColumnWeb(String tableName, String columnName) async {
 //   SqlJsDatabase webDatabase = await getDatabaseForWeb();
