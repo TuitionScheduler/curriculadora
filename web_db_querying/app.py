@@ -179,7 +179,7 @@ try:
     # Excecute query for programs table
     cursor.execute("SELECT " \
     "code, name, degree_type, credits, courses, english, spanish, humanities, " \
-    "social, sociohumanistics, technical, technical_courses, free, kinesiology, longest_path " \
+    "social, sociohumanistics, technical, technical_courses, free, kinesiology, longest_path" \
     " FROM programs")
     program_rows = cursor.fetchall()
 
