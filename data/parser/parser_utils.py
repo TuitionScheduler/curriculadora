@@ -15,22 +15,24 @@ _path_cache = {}
 
 
 def get_highest_ancestor(
-    db_session: Session, program_courses_and_tech_union: tuple
-) -> dict:
+    db_session: Session, program_courses_and_tech_union: list
+) -> tuple:
     """
     Fetches highest ancestor and course with the highest ancestor in the program.
     """
-    course_with_highest_ancestor_list = (
+    print(program_courses_and_tech_union)
+    courses_with_ancestors_list = (
         db_session.query(Course)
         .distinct(Course.course_code)
-        .where(Course.course_code in program_courses_and_tech_union)
+        .filter(Course.course_code.in_(program_courses_and_tech_union))
         .order_by(desc(Course.highest_ancestor))
         .limit(1)
         .all()
     )
-    if len(course_with_highest_ancestor_list != 1):
+    print(courses_with_ancestors_list)
+    if not courses_with_ancestors_list:
         return (0, "")
-    course_with_highest_ancestor = course_with_highest_ancestor_list[0]
+    course_with_highest_ancestor = courses_with_ancestors_list[0]
     course_code = course_with_highest_ancestor.course_code
     highest_ancestor = course_with_highest_ancestor.highest_ancestor
     return (highest_ancestor, course_code)
