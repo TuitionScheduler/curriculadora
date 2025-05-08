@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from sqlalchemy import desc
 
 from collections import defaultdict
-from data.database.database import Course
+from data.database.database import Course, Program
 from data.parser.requisite_parser import (
     parse_prerequisites,
     parse_corequisites,
@@ -12,6 +12,28 @@ from data.parser.requisite_parser import (
 
 logger = logging.getLogger(__name__)
 _path_cache = {}
+
+
+def get_highest_ancestor(
+    db_session: Session, program_courses_and_tech_union: tuple
+) -> dict:
+    """
+    Fetches highest ancestor and course with the highest ancestor in the program.
+    """
+    course_with_highest_ancestor_list = (
+        db_session.query(Course)
+        .distinct(Course.course_code)
+        .where(Course.course_code in program_courses_and_tech_union)
+        .order_by(desc(Course.highest_ancestor))
+        .limit(1)
+        .all()
+    )
+    if len(course_with_highest_ancestor_list != 1):
+        return (0, "")
+    course_with_highest_ancestor = course_with_highest_ancestor_list[0]
+    course_code = course_with_highest_ancestor.course_code
+    highest_ancestor = course_with_highest_ancestor.highest_ancestor
+    return (highest_ancestor, course_code)
 
 
 def load_and_parse_all_course_reqs(db_session: Session) -> dict:

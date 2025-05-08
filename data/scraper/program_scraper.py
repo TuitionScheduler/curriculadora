@@ -10,6 +10,7 @@ from data.parser.requisite_parser import (
     lexer,
 )
 from data.parser.parser_utils import (
+    get_highest_ancestor,
     load_and_parse_all_course_reqs,
     build_reverse_dependency_maps,
     filter_parsed_requisites,
@@ -180,6 +181,15 @@ def main():
                     }
             program_technical_courses_json = json.dumps(enhanced_tech_courses_dict)
 
+            # Calculate longest path
+            program_courses_and_tech_union = list(
+                set(courses_list).union(tech_courses_list)
+            )
+            # course_code_highest_ancestor is unused for now
+            number_highest_ancestor, course_code_highest_ancestor = (
+                get_highest_ancestor(db_session, program_courses_and_tech_union)
+            )
+
             program = Program(
                 code=program_code,
                 name=program_name,
@@ -195,6 +205,7 @@ def main():
                 technical_courses=program_technical_courses_json,  # JSON string of DICTIONARY of objects
                 free=program_free,
                 kinesiology=program_kinesiology,
+                longest_path=number_highest_ancestor,
             )
 
             # Add to session.
