@@ -35,7 +35,7 @@ def query_by_column_value(table_name: str, column_name: str, value: str):
 def query_by_column(table_name: str, column_name: str):
     try:
         with engine.connect() as conn:
-            query = text(f"SELECT {column_name} FROM {table_name} LIMIT 10")
+            query = text(f"SELECT {column_name} FROM {table_name}")
             result = conn.execute(query)
             return [dict(row._mapping) for row in result]
     except Exception as e:
@@ -45,7 +45,7 @@ def query_by_column(table_name: str, column_name: str):
 def query_table(table_name: str):
     try:
         with engine.connect() as conn:
-            query = text(f"SELECT * FROM {table_name} LIMIT 10")
+            query = text(f"SELECT * FROM {table_name}")
             result = conn.execute(query)
             return [dict(row._mapping) for row in result]
     except Exception as e:
@@ -67,9 +67,9 @@ def query_table(table: str, column: str = None):
     try:
         with engine.connect() as conn:
             if column:
-                query = text(f"SELECT {column} FROM {table} LIMIT 10")
+                query = text(f"SELECT {column} FROM {table}")
             else:
-                query = text(f"SELECT * FROM {table} LIMIT 10")
+                query = text(f"SELECT * FROM {table}")
             result = conn.execute(query)
             return [dict(row._mapping) for row in result]
     except Exception as e:
