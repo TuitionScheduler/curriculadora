@@ -465,7 +465,7 @@ async def generate_schedule_heuristic(
 
                     # Check Availability
                     if not await predict_availability(
-                        course_code, term_type, year, db_session
+                        course_code, term_type, db_session
                     ):
                         continue
 
@@ -541,7 +541,7 @@ async def generate_schedule_heuristic(
                             # ):
                             #    continue
                             if not await predict_availability(
-                                course_code, term_type, year, db_session
+                                course_code, term_type, db_session
                             ):
                                 continue
                             # Add as technical elective candidate (fulfilling the 'technical' credit need)
@@ -617,7 +617,7 @@ async def generate_schedule_heuristic(
                         #     continue
                         # Check Availability
                         if not await predict_availability(
-                            course_code, term_type, year, db_session
+                            course_code, term_type, db_session
                         ):
                             continue
 
@@ -732,7 +732,7 @@ async def generate_schedule_heuristic(
                             can_add_coreqs = False
                             break
                         if not await predict_availability(
-                            coreq_code, term_type, year, db_session
+                            coreq_code, term_type, db_session
                         ):
                             can_add_coreqs = False
                             break

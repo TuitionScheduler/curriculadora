@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from data.database.database import Course
@@ -7,7 +8,7 @@ logger = logging.getLogger(__name__)
 
 
 async def predict_availability(
-    course_code: str, term_type: str, year: int, db_session: AsyncSession
+    course_code: str, term_type: str, db_session: AsyncSession
 ) -> bool:
     """
     Predicts if a course is likely available in a given term and year
@@ -27,6 +28,10 @@ async def predict_availability(
     """
     course_code_formatted = course_code.replace(" ", "")  # Ensure consistent format
     term_type_lower = term_type.lower()
+
+    # Get current year
+    current_date = date.today()
+    year = current_date.year
 
     # Query the course record - we only need one record per course code
     # as it should contain the latest 'last offered' info for all term types.
