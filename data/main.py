@@ -1,4 +1,5 @@
 import logging
+import datetime
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, validator
@@ -140,6 +141,17 @@ def map_request_term_to_scheduler_term(req_term: str) -> str:
 async def recommend_schedule_endpoint(
     request: ScheduleRequest, db: AsyncSession = Depends(get_db)
 ):
+
+    # logging.basicConfig(
+    #     level=logging.DEBUG,  # Set the logging level
+    #     format="%(asctime)s - %(levelname)s - %(message)s",  # Log message format
+    #     handlers=[
+    #         logging.FileHandler(
+    #             f"run-{datetime.datetime.now()}.log"
+    #         ),  # Log to a file named 'app.log'
+    #         # logging.StreamHandler(),  # Optional: Log to the console as well
+    #     ],
+    # )
     api_warnings = []  # Use a different name to avoid conflict with result warnings
     try:
         program_reqs = await load_program_data(request.program_code, db)
@@ -334,18 +346,6 @@ async def recommend_schedule_endpoint(
         )
 
 
-import datetime
-
-logging.basicConfig(
-    level=logging.DEBUG,  # Set the logging level
-    format="%(asctime)s - %(levelname)s - %(message)s",  # Log message format
-    handlers=[
-        logging.FileHandler(
-            f"run-{datetime.datetime.now()}.log"
-        ),  # Log to a file named 'app.log'
-        logging.StreamHandler(),  # Optional: Log to the console as well
-    ],
-)
 # To run this (example using uvicorn):
 # uvicorn main:app --reload
 # (Assuming this file is named main.py)

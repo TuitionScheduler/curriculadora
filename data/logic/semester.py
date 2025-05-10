@@ -2,7 +2,7 @@ import asyncio
 import json
 import logging
 import math
-import random  # Added for variety in course selection if needed
+import random
 import statistics
 from collections import defaultdict
 from typing import Any, List, Dict, Set, Optional, Tuple, Literal
@@ -12,8 +12,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from data.database.database import Program, Course
 from data.logic.availability import predict_availability
 
-# from data.logic.scheduler import TermData # Explicitly import if not part of SchedulerResult module easily
-
 from data.parser.parser_utils import (
     flatten_requisites_to_list,
     parse_prerequisites,
@@ -22,28 +20,32 @@ from data.parser.parser_utils import (
 )
 
 logger = logging.getLogger(__name__)
+# Configure basic logging if not already configured by the application
+if not logger.hasHandlers():
+    logging.basicConfig(
+        level=logging.INFO,
+        format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+    )
 
 
 # Pydantic models
-class TermData(
-    BaseModel
-):  # This was already defined, ensure it matches SchedulerResult's expectations
+class TermData(BaseModel):
     courses: List[str] = []
     credits: int = 0
     difficulty_sum: float = 0.0
 
 
 class SchedulerResult(BaseModel):
-    schedule: Dict[str, TermData]  # Maps term name ("Fall 2025") to TermData
-    score: float  # Lower is better fit to curve?
+    schedule: Dict[str, TermData]
+    score: float
     is_complete: bool
     warnings: List[str] = []
     rank: int = 0
 
 
 class Requirement(BaseModel):
-    kind: str  # "COURSE", "COURSE_CATEGORY"
-    value: str  # Course code or category name
+    kind: str
+    value: str
     credits: int = 0
     difficulty: float = 0.0
     priority: float = 0.0
@@ -52,26 +54,21 @@ class Requirement(BaseModel):
 class TermRequisiteData(BaseModel):
     requirement: List[Requirement] = []
     credits: int = 0
-    difficulty_sum: float = (
-        0.0  # Sum of difficulties of REQUIREMENTS (courses or estimated for categories)
-    )
+    difficulty_sum: float = 0.0
 
     def is_empty(self):
         return not self.requirement
 
 
 class SchedulerSkeletonResult(BaseModel):
-    schedule: Dict[
-        str, TermRequisiteData
-    ]  # Maps term name ("Fall 2025") to TermRequisiteData
-    score: float  # Lower is better
+    schedule: Dict[str, TermRequisiteData]
+    score: float
     is_complete: bool
     warnings: List[str] = []
 
 
 # Helper functions
 async def load_program_data(program_code: str, db: AsyncSession) -> Optional[Program]:
-    """Loads program requirements from the DB."""
     try:
         result = await db.execute(select(Program).where(Program.code == program_code))
         program = result.scalars().first()
@@ -86,11 +83,6 @@ async def load_program_data(program_code: str, db: AsyncSession) -> Optional[Pro
 
 
 async def load_course_data_lookups(db: AsyncSession) -> Dict[str, Dict]:
-    """
-    Loads all course data into lookup dictionaries for efficient access.
-    Includes credits, difficulty, path length, availability info, and
-    stores RAW prerequisite/corequisite strings for later parsing if needed.
-    """
     lookup = {}
     try:
         stmt = select(Course)
@@ -117,10 +109,7 @@ async def load_course_data_lookups(db: AsyncSession) -> Dict[str, Dict]:
 
 
 def check_requisites_recursive(req_dict: dict, completed_courses: Set[str]) -> bool:
-    """Checks if parsed requisites (filtered for courses) are met by the completed set."""
-    if not req_dict or not isinstance(
-        req_dict, dict
-    ):  # Base case: empty or invalid req is met
+    if not req_dict or not isinstance(req_dict, dict):
         return True
 
     req_type = req_dict.get("type")
@@ -131,36 +120,34 @@ def check_requisites_recursive(req_dict: dict, completed_courses: Set[str]) -> b
     elif req_type == "AND":
         conditions = req_dict.get("conditions", [])
         if not conditions:
-            return True  # Empty AND is true
+            return True
         return all(
             check_requisites_recursive(cond, completed_courses) for cond in conditions
         )
     elif req_type == "OR":
         conditions = req_dict.get("conditions", [])
         if not conditions:
-            return False  # Empty OR is false
+            return False
         return any(
             check_requisites_recursive(cond, completed_courses) for cond in conditions
         )
-    elif req_type == "ANDOR":  # Usually A Y/O B -> A or B or (A and B)
+    elif req_type == "ANDOR":
         conditions = req_dict.get("value", [])
         if not isinstance(conditions, list) or not conditions:
-            return False  # Invalid or empty ANDOR
+            return False
         return any(
             check_requisites_recursive(cond, completed_courses) for cond in conditions
         )
-    elif (
-        req_type == "FOR"
-    ):  # e.g. "6 credits FOR MATE" - applies to a category, not a direct course pre/co-req
+    elif req_type == "FOR":
         logger.debug(
             f"Encountered 'FOR' type during requisite check, treating as met: {req_dict}"
         )
-        return True  # In course-based pre/co-req checks, this type doesn't block.
+        return True
     else:
         logger.warning(
             f"Unexpected node type in check_requisites_recursive: {req_type} for {req_dict}"
         )
-        return False  # Fail safe
+        return False
 
 
 def get_course_category(
@@ -168,21 +155,14 @@ def get_course_category(
     required_course_codes: set[str],
     technical_course_codes: set[str],
     group_sociohumanistics: bool = False,
-) -> str:  # Return type changed to str, will return "free" as default
+) -> str:
     if course_code in required_course_codes:
         return "required"
-
-    # Important: A course can be technical in nature but also specifically required.
-    # The "technical" category here implies it's being considered as an elective choice from the technical pool.
-    # If it's NOT in required_course_codes but IS in technical_course_codes, it's a technical elective.
-    if (
-        course_code in technical_course_codes
-    ):  # And implicitly not in required_course_codes due to above check if used sequentially
+    if course_code in technical_course_codes:
         return "technical"
 
     prefix = course_code[:4]
-    category = None  # Only used for disambiguating sociohumanistics
-    # General Education / Other Categories
+    category = None
     if prefix == "EDFI":
         return "kinesiology"
     if prefix == "INGL":
@@ -206,31 +186,27 @@ def get_course_category(
         category = "social"
     if category:
         return "sociohumanistics" if group_sociohumanistics else category
-
-    return "free"  # Default category if none of the above match
+    return "free"
 
 
 def get_course_priority(category: str) -> float:
     PRIORITY_MAP = {
         "required": 1.0,
-        "techniucal": 2.0,
+        "technical": 2.0,
         "english": 3.0,
-        "spanish": 3.0,
+        "spanish": 3.0,  # Corrected typo "techniucal"
         "humanities": 4.0,
         "social": 4.0,
         "sociohumanistics": 4.0,
         "free": 5.0,
         "kinesiology": 6.0,
     }
-    return PRIORITY_MAP.get(
-        category, 5.0
-    )  # Default to "free" priority for unknown categories
+    return PRIORITY_MAP.get(category, 5.0)
 
 
 def get_next_term(current_term: str, current_year: int) -> Dict[str, Any]:
     current_term_lower = current_term.lower()
     TERMS = ["spring", "firstsummer", "secondsummer", "fall"]
-
     try:
         current_term_index = TERMS.index(current_term_lower)
     except ValueError:
@@ -238,15 +214,11 @@ def get_next_term(current_term: str, current_year: int) -> Dict[str, Any]:
             f"Invalid current_term '{current_term}' provided to get_next_term."
         )
         raise ValueError(f"Unknown term: {current_term}")
-
     next_term_index = (current_term_index + 1) % len(TERMS)
     next_term_name = TERMS[next_term_index]
-
     next_year = current_year
-    # Year increments if we are moving from Fall (last term in sequence) to Spring (first term in sequence)
     if current_term_index == (len(TERMS) - 1):
         next_year = current_year + 1
-
     return {"term": next_term_name, "year": next_year}
 
 
@@ -257,10 +229,6 @@ def _is_program_complete_v2(
     program_specific_required_codes: Set[str],
     program_technical_elective_pool: Set[str],
 ) -> bool:
-    """
-    Checks if all program requirements (specific courses and category credits) are met.
-    """
-    # 1. Check all specific required courses
     if not program_specific_required_codes.issubset(current_taken_courses):
         missing_specific = program_specific_required_codes - current_taken_courses
         logger.debug(
@@ -268,21 +236,14 @@ def _is_program_complete_v2(
         )
         return False
 
-    # 2. Check credit categories
     credits_met_for_category = defaultdict(int)
     for course_code in current_taken_courses:
-        # Only count courses NOT in program_specific_required_codes towards category credits.
-        # Assumes specific courses fulfill their role and don't double-count for general categories.
         if course_code not in program_specific_required_codes:
             category = get_course_category(
                 course_code,
                 program_specific_required_codes,
                 program_technical_elective_pool,
             )
-            # `get_course_category` will return "technical" if course_code is in program_technical_elective_pool (and not specific).
-            # It will return "free" or other gen-ed categories otherwise.
-            # "required" category courses are handled by the specific check above.
-
             course_data = course_lookups.get(course_code)
             if course_data:
                 credits_met_for_category[category] += course_data["credits"]
@@ -296,35 +257,35 @@ def _is_program_complete_v2(
         "spanish": program_reqs.spanish or 0,
         "humanities": program_reqs.humanities or 0,
         "social": program_reqs.social or 0,
-        "technical": program_reqs.technical
-        or 0,  # Credits from the technical_elective_pool
+        "technical": program_reqs.technical or 0,
         "free": program_reqs.free or 0,
         "kinesiology": program_reqs.kinesiology or 0,
     }
 
+    all_categories_met = True
     for cat, required_val in target_category_credits.items():
         if credits_met_for_category[cat] < required_val:
             logger.debug(
-                f"Program completion check: Incomplete. Category '{cat}': {credits_met_for_category[cat]}/{required_val} credits."
+                f"Program completion check: Category '{cat}' incomplete: "
+                f"{credits_met_for_category[cat]}/{required_val} credits."
             )
-            return False
+            all_categories_met = False
+    if not all_categories_met:
+        return False
 
-    # Check sociohumanistics requirement (sum of humanities and social credits met)
     if program_reqs.sociohumanistics and program_reqs.sociohumanistics > 0:
         total_huma_social_met = (
             credits_met_for_category["humanities"] + credits_met_for_category["social"]
         )
         if total_huma_social_met < (program_reqs.sociohumanistics or 0):
             logger.debug(
-                f"Program completion check: Incomplete. Sociohumanistics: {total_huma_social_met}/{program_reqs.sociohumanistics} credits."
+                f"Program completion check: Incomplete. Sociohumanistics: "
+                f"{total_huma_social_met}/{program_reqs.sociohumanistics} credits."
             )
             return False
 
-    logger.debug("Program completion check: All requirements appear to be met.")
+    logger.info("Program completion check: All requirements appear to be met.")
     return True
-
-
-# --- Start improved functions ---
 
 
 async def generate_semester(
@@ -332,15 +293,28 @@ async def generate_semester(
     course_lookups: Dict[str, Dict],
     term: str,
     year: int,
-    taken_courses_set: Set[str],
+    # This set includes:
+    # 1. Courses initially taken by the student.
+    # 2. Specific 'COURSE' type requirements planned in previous skeleton terms.
+    taken_or_planned_specific_courses_set: Set[str],
+    # This dict tracks credits for 'COURSE_CATEGORY' requirements
+    # planned (but not yet resolved to specific courses) in previous skeleton terms.
+    prior_category_credits_planned_in_skeleton: Dict[str, int],
     target_difficulty: float,
-    credit_limits: Dict,  # {"min": x, "max": y}
+    credit_limits: Dict,
     db_session: AsyncSession,
 ) -> tuple[TermRequisiteData, bool]:
+    term_id_str = f"{term.capitalize()} {year}"
+    logger.info(f"--- Generating semester skeleton for: {term_id_str} ---")
+    logger.debug(
+        f"Received {len(taken_or_planned_specific_courses_set)} taken/planned specific courses: {taken_or_planned_specific_courses_set if len(taken_or_planned_specific_courses_set) < 10 else '...'}"
+    )
+    logger.debug(
+        f"Received prior category credits planned in skeleton: {prior_category_credits_planned_in_skeleton}"
+    )
 
     try:
         required_courses_req_data_json = json.loads(program_reqs.courses or "{}")
-        # tech_electives_req_data_json = json.loads(program_reqs.technical_courses or "{}") # Not directly used here beyond defining the pool
     except json.JSONDecodeError as e:
         logger.error(
             f"Failed to parse program course JSON for {program_reqs.code} in generate_semester: {e}"
@@ -348,7 +322,6 @@ async def generate_semester(
         raise
 
     program_specific_required_codes = set(required_courses_req_data_json.keys())
-    # Pool of codes ALLOWED for technical electives (used by get_course_category & _is_program_complete_v2)
     program_technical_elective_pool = set(
         json.loads(program_reqs.technical_courses or "{}").keys()
     )
@@ -357,13 +330,17 @@ async def generate_semester(
 
     # 1. Add specific required courses to the pool if eligible
     remaining_specific_course_codes = (
-        program_specific_required_codes - taken_courses_set
+        program_specific_required_codes - taken_or_planned_specific_courses_set
     )
+    logger.debug(
+        f"{term_id_str}: Remaining specific required courses to consider: {remaining_specific_course_codes}"
+    )
+
     for course_code in remaining_specific_course_codes:
         course_data = course_lookups.get(course_code)
         if not course_data:
             logger.warning(
-                f"Course {course_code} (required) not in course_lookups. Skipping."
+                f"{term_id_str}: Course {course_code} (required) not in course_lookups. Skipping."
             )
             continue
 
@@ -371,22 +348,26 @@ async def generate_semester(
         if prereqs_raw:
             parsed_prereqs = parse_prerequisites(prereqs_raw)
             filtered_prereqs = filter_parsed_requisites(parsed_prereqs)
-            if not check_requisites_recursive(filtered_prereqs, taken_courses_set):
-                logger.info(
-                    "Prerequisites not met for course %s. Skipping.",
-                    course_code,
+            # Check against courses already taken/planned (specifics) before this term
+            if not check_requisites_recursive(
+                filtered_prereqs, taken_or_planned_specific_courses_set
+            ):
+                logger.debug(
+                    f"{term_id_str}: Prerequisites not met for specific course {course_code}. Skipping."
                 )
                 continue
 
-        if not await predict_availability(course_code, term, db_session):
+        is_available = await predict_availability(course_code, term, db_session)
+        if not is_available:
+            logger.debug(
+                f"{term_id_str}: Specific course {course_code} predicted unavailable. Skipping."
+            )
             continue
 
-        # Category for a specific required course is "required"
         category_for_priority = get_course_category(
             course_code,
             program_specific_required_codes,
             program_technical_elective_pool,
-            group_sociohumanistics=False,
         )
         current_semester_requirements_pool.append(
             Requirement(
@@ -397,6 +378,9 @@ async def generate_semester(
                 difficulty=course_data["difficulty"],
             )
         )
+    logger.debug(
+        f"{term_id_str}: Added {len([r for r in current_semester_requirements_pool if r.kind == 'COURSE'])} specific courses to consideration pool."
+    )
 
     # 2. Calculate and add category requirements (COURSE_CATEGORY)
     target_category_credits_map = {
@@ -409,38 +393,64 @@ async def generate_semester(
         "free": program_reqs.free or 0,
         "kinesiology": program_reqs.kinesiology or 0,
     }
-    credits_already_met_for_category = defaultdict(int)
-    for (
-        taken_course_code
-    ) in taken_courses_set:  # Iterate over courses taken *before* this semester
+    logger.debug(
+        f"{term_id_str}: Target category credits from program: {target_category_credits_map}"
+    )
+
+    # Credits for categories met by *actual courses taken or planned as specific requirements*
+    # (i.e., from taken_or_planned_specific_courses_set)
+    credits_met_by_actual_courses_for_category = defaultdict(int)
+    for taken_course_code in taken_or_planned_specific_courses_set:
         if (
             taken_course_code not in program_specific_required_codes
-        ):  # Only non-specific courses count towards categories
+        ):  # Only non-specific courses count towards general categories
             cat = get_course_category(
                 taken_course_code,
                 program_specific_required_codes,
                 program_technical_elective_pool,
             )
-            # `cat` will be "technical", "humanities", "free", etc. but not "required".
-            credits_already_met_for_category[cat] += course_lookups[taken_course_code][
-                "credits"
-            ]
+            if taken_course_code in course_lookups:  # Ensure course exists in lookups
+                credits_met_by_actual_courses_for_category[cat] += course_lookups[
+                    taken_course_code
+                ]["credits"]
+            else:
+                logger.warning(
+                    f"{term_id_str}: Course {taken_course_code} from 'taken_or_planned_specific_courses_set' not in lookups during category credit calculation."
+                )
+
+    logger.debug(
+        f"{term_id_str}: Credits met by actual taken/planned courses for categories: {dict(credits_met_by_actual_courses_for_category)}"
+    )
+    logger.debug(
+        f"{term_id_str}: Credits accounted for by prior skeleton category placeholders: {dict(prior_category_credits_planned_in_skeleton)}"
+    )
 
     for (
         category_name,
         total_target_credits_for_category,
     ) in target_category_credits_map.items():
-        needed_credits = (
-            total_target_credits_for_category
-            - credits_already_met_for_category[category_name]
+        credits_from_actual_taken = credits_met_by_actual_courses_for_category[
+            category_name
+        ]
+        credits_from_prior_skeleton = prior_category_credits_planned_in_skeleton.get(
+            category_name, 0
         )
+
+        total_credits_accounted_for = (
+            credits_from_actual_taken + credits_from_prior_skeleton
+        )
+        needed_credits = total_target_credits_for_category - total_credits_accounted_for
+
+        logger.debug(
+            f"{term_id_str}: Category '{category_name}': Target={total_target_credits_for_category}, ActualTakenMet={credits_from_actual_taken}, PriorSkeletonMet={credits_from_prior_skeleton}, Needed={needed_credits}"
+        )
+
         if needed_credits <= 0:
             continue
 
         num_3_credit_chunks = needed_credits // 3
         remaining_offshoot_credits = needed_credits % 3
         cat_priority = get_course_priority(category_name)
-        # Estimated difficulty for category slots
         est_difficulty = 2.5 if category_name not in ["technical", "required"] else 3.0
 
         for _ in range(num_3_credit_chunks):
@@ -463,6 +473,9 @@ async def generate_semester(
                     difficulty=est_difficulty,
                 )
             )
+    logger.debug(
+        f"{term_id_str}: Total items in requirements pool (specifics + categories) before sorting: {len(current_semester_requirements_pool)}"
+    )
 
     current_semester_requirements_pool.sort(
         key=lambda r: (r.priority, abs(r.difficulty - target_difficulty))
@@ -470,12 +483,9 @@ async def generate_semester(
 
     # 3. Select requirements for the semester
     proposed_semester_data = TermRequisiteData()
-    courses_added_this_term_codes = (
-        set()
-    )  # For co-requisite checks within this semester
+    courses_added_this_term_codes = set()
 
-    eligible_reqs_copy = list(current_semester_requirements_pool)  # Iterate over a copy
-
+    eligible_reqs_copy = list(current_semester_requirements_pool)
     while proposed_semester_data.credits < credit_limits["max"] and eligible_reqs_copy:
         selected_req_obj = None
         selected_req_idx = -1
@@ -490,87 +500,126 @@ async def generate_semester(
             if req_candidate.kind == "COURSE":
                 course_code_cand = req_candidate.value
                 course_cand_data = course_lookups[course_code_cand]
-
                 coreqs_raw = course_cand_data.get("corequisites_raw")
                 if coreqs_raw:
                     parsed_coreqs = parse_corequisites(coreqs_raw)
                     filtered_coreqs = filter_parsed_requisites(parsed_coreqs)
-                    # Co-reqs check against (taken before this term) + (already added to this term)
+                    # Co-reqs check: (taken before this term overall) + (specific courses already added to this term's skeleton)
                     if not check_requisites_recursive(
                         filtered_coreqs,
-                        taken_courses_set.union(courses_added_this_term_codes),
+                        taken_or_planned_specific_courses_set.union(
+                            courses_added_this_term_codes
+                        ),
                     ):
                         logger.debug(
-                            f"Course {course_code_cand} co-reqs not met for {term} {year}. Skipping."
+                            f"{term_id_str}: Course {course_code_cand} co-reqs not met. Skipping for this term."
                         )
                         continue
-
                 selected_req_obj = req_candidate
                 selected_req_idx = i
                 break
-
-            elif (
-                req_candidate.kind == "COURSE_CATEGORY"
-            ):  # No co-reqs for category placeholders
+            elif req_candidate.kind == "COURSE_CATEGORY":
                 selected_req_obj = req_candidate
                 selected_req_idx = i
                 break
 
         if selected_req_obj:
+            logger.debug(
+                f"{term_id_str}: Selecting requirement: {selected_req_obj.kind} {selected_req_obj.value} ({selected_req_obj.credits}cr)"
+            )
             proposed_semester_data.requirement.append(selected_req_obj)
             proposed_semester_data.credits += selected_req_obj.credits
             proposed_semester_data.difficulty_sum += selected_req_obj.difficulty
-
             if selected_req_obj.kind == "COURSE":
                 courses_added_this_term_codes.add(selected_req_obj.value)
-
-            eligible_reqs_copy.pop(selected_req_idx)  # Remove from consideration
+            eligible_reqs_copy.pop(selected_req_idx)
         else:
-            break  # No suitable requirement found
+            logger.debug(
+                f"{term_id_str}: No more eligible requirements found or credit limit nearly reached."
+            )
+            break
+
+    logger.info(
+        f"{term_id_str}: Proposed semester skeleton: {len(proposed_semester_data.requirement)} items, {proposed_semester_data.credits} credits."
+    )
+    for req_item in proposed_semester_data.requirement:
+        logger.debug(
+            f"  - Skeleton Item: {req_item.kind} {req_item.value} ({req_item.credits}cr)"
+        )
 
     # 4. Validate credit limits and determine program completion status
-    # Allow empty semester only if min_credits is 0 or program is already complete.
     is_empty_and_min_is_zero = (
         proposed_semester_data.is_empty() and credit_limits["min"] == 0
+    )
+
+    # Tentative set of specific courses if this semester's specific courses are taken
+    tentative_all_specific_courses = taken_or_planned_specific_courses_set.union(
+        courses_added_this_term_codes
+    )
+
+    # For _is_program_complete_v2, we need to simulate that category placeholders are filled.
+    # This is tricky. _is_program_complete_v2 works on *actual resolved courses*.
+    # The `program_would_be_complete` flag from generate_semester is more of an estimate.
+    # Let's define `program_would_be_complete` based on whether all *specific* courses are covered
+    # AND all *category credit targets* are covered by the sum of:
+    #   1. Actual taken courses (from `taken_or_planned_specific_courses_set` that are not program specific)
+    #   2. Category placeholders from prior skeleton terms (`prior_category_credits_planned_in_skeleton`)
+    #   3. Category placeholders from this current term's skeleton (`proposed_semester_data` for `COURSE_CATEGORY`)
+
+    temp_all_taken_or_planned_specifics = taken_or_planned_specific_courses_set.union(
+        courses_added_this_term_codes
+    )
+
+    # Check if all specific courses are covered by this point
+    all_specific_courses_covered = program_specific_required_codes.issubset(
+        temp_all_taken_or_planned_specifics
+    )
+
+    # Check if all category credits are covered by placeholders and actuals
+    all_category_credits_covered = True
+    current_term_category_credits_planned = defaultdict(int)
+    for req in proposed_semester_data.requirement:
+        if req.kind == "COURSE_CATEGORY":
+            current_term_category_credits_planned[req.value] += req.credits
+
+    for cat_name, target_credits in target_category_credits_map.items():
+        met_by_actuals = credits_met_by_actual_courses_for_category[cat_name]
+        met_by_prior_skeleton = prior_category_credits_planned_in_skeleton.get(
+            cat_name, 0
+        )
+        met_by_current_skeleton = current_term_category_credits_planned[cat_name]
+        total_covered_for_cat = (
+            met_by_actuals + met_by_prior_skeleton + met_by_current_skeleton
+        )
+        if total_covered_for_cat < target_credits:
+            all_category_credits_covered = False
+            logger.debug(
+                f"{term_id_str}: Program completion estimate: Category '{cat_name}' still needs {target_credits - total_covered_for_cat} credits."
+            )
+            break
+
+    program_would_be_complete_estimate = (
+        all_specific_courses_covered and all_category_credits_covered
+    )
+    logger.info(
+        f"{term_id_str}: Program completion estimate (skeleton based): {program_would_be_complete_estimate} (Specifics covered: {all_specific_courses_covered}, Categories covered: {all_category_credits_covered})"
     )
 
     if (
         not is_empty_and_min_is_zero
         and proposed_semester_data.credits < credit_limits["min"]
     ):
-        # Check if program is complete; if so, being under min might be ok for the last semester.
-        temp_taken_for_final_check = taken_courses_set.union(
-            courses_added_this_term_codes
-        )
-        is_prog_complete_now = _is_program_complete_v2(
-            program_reqs,
-            temp_taken_for_final_check,
-            course_lookups,
-            program_specific_required_codes,
-            program_technical_elective_pool,
-        )
         if (
-            not is_prog_complete_now
-        ):  # If not complete and under min credits (and not empty with min_credits=0)
+            not program_would_be_complete_estimate
+        ):  # If not complete and under min credits
             warning_msg = (
-                f"Term {term} {year}: Generated semester has {proposed_semester_data.credits} credits, "
-                f"less than min ({credit_limits['min']}), and program is not yet complete."
+                f"Term {term_id_str}: Generated semester skeleton has {proposed_semester_data.credits} credits, "
+                f"less than min ({credit_limits['min']}), and program skeleton is not yet complete."
             )
             logger.warning(warning_msg)
-            raise ValueError(warning_msg)  # Critical failure to form a valid semester
+            raise ValueError(warning_msg)  # Critical failure
 
-    # `is_program_finished_bool` reflects if the program *would be* complete
-    # assuming the specific courses from this semester are taken and category slots are eventually filled.
-    tentative_all_taken_courses = taken_courses_set.union(courses_added_this_term_codes)
-    is_program_finished_bool = _is_program_complete_v2(
-        program_reqs,
-        tentative_all_taken_courses,
-        course_lookups,
-        program_specific_required_codes,
-        program_technical_elective_pool,
-    )
-
-    return proposed_semester_data, is_program_finished_bool
+    return proposed_semester_data, program_would_be_complete_estimate
 
 
 async def resolve_category_requirements(
@@ -579,15 +628,12 @@ async def resolve_category_requirements(
     initial_taken_courses: Set[str],
     schedule_skeleton: SchedulerSkeletonResult,
     db_session: AsyncSession,
-    program_specific_required_codes: Set[str],  # Passed in for consistency
-    program_technical_elective_pool: Set[str],  # Passed in for consistency
+    program_specific_required_codes: Set[str],
+    program_technical_elective_pool: Set[str],
 ) -> SchedulerResult:
-
-    resolved_schedule_map: Dict[str, TermData] = {}  # term_key -> TermData (resolved)
-    final_warnings = list(schedule_skeleton.warnings)  # Copy warnings from skeleton
-
-    # Tracks all courses assigned throughout the resolution process, term by term
-    # Starts with courses taken before the skeleton begins.
+    logger.info("--- Resolving Category Requirements for Skeleton ---")
+    resolved_schedule_map: Dict[str, TermData] = {}
+    final_warnings = list(schedule_skeleton.warnings)
     globally_resolved_and_taken_courses = initial_taken_courses.copy()
 
     term_order_map = {"spring": 0, "firstsummer": 1, "secondsummer": 2, "fall": 3}
@@ -596,31 +642,24 @@ async def resolve_category_requirements(
             schedule_skeleton.schedule.keys(),
             key=lambda tk: (int(tk.split()[1]), term_order_map[tk.split()[0].lower()]),
         )
-    except Exception as e:  # Fallback if term keys are malformed
+    except Exception as e:
         logger.error(
             f"Error sorting term keys '{list(schedule_skeleton.schedule.keys())}': {e}. Using unsorted."
         )
         sorted_term_keys = list(schedule_skeleton.schedule.keys())
 
     for term_key in sorted_term_keys:
-        term_skeleton_data = schedule_skeleton.schedule[
-            term_key
-        ]  # This is TermRequisiteData
-        current_term_resolved_termdata = (
-            TermData()
-        )  # This will be the resolved TermData
-
-        # Courses taken *before* this specific term (initial + previous resolved terms)
+        logger.info(f"Resolving term: {term_key}")
+        term_skeleton_data = schedule_skeleton.schedule[term_key]
+        current_term_resolved_termdata = TermData()
         taken_courses_before_this_term = globally_resolved_and_taken_courses.copy()
-
-        # Courses added within *this* term, for co-req checks among them
         courses_resolved_this_term_set = set()
 
         term_name_parts = term_key.split()
-        current_term_name_for_api = term_name_parts[0]  # e.g. "Fall"
+        current_term_name_for_api = term_name_parts[0]
         current_term_year_for_api = int(term_name_parts[1])
 
-        # 1. Process concrete "COURSE" requirements first for this term
+        # 1. Process concrete "COURSE" requirements first
         for req in term_skeleton_data.requirement:
             if req.kind == "COURSE":
                 course_code = req.value
@@ -629,20 +668,17 @@ async def resolve_category_requirements(
                     or course_code in courses_resolved_this_term_set
                 ):
                     logger.warning(
-                        f"Course {course_code} in term {term_key} seems to be a duplicate or already taken. Skipping."
+                        f"Course {course_code} in term {term_key} (skeleton) is duplicate/already taken. Skipping."
                     )
                     continue
-
                 course_info = course_lookups.get(course_code)
                 if not course_info:
-                    logger.error(
-                        f"Course {course_code} from skeleton not in lookups for term {term_key}. Cannot resolve."
-                    )
-                    final_warnings.append(
-                        f"Error: Course {course_code} (skeleton) missing from lookups for {term_key}."
-                    )
+                    msg = f"Error: Course {course_code} (skeleton) missing from lookups for {term_key}."
+                    logger.error(msg)
+                    final_warnings.append(msg)
                     continue
 
+                logger.debug(f"  Adding specific course from skeleton: {course_code}")
                 current_term_resolved_termdata.courses.append(course_code)
                 current_term_resolved_termdata.credits += course_info["credits"]
                 current_term_resolved_termdata.difficulty_sum += course_info[
@@ -655,63 +691,60 @@ async def resolve_category_requirements(
             if req.kind == "COURSE_CATEGORY":
                 category_to_fill = req.value
                 credits_for_slot = req.credits
+                logger.debug(
+                    f"  Attempting to resolve category '{category_to_fill}' for {credits_for_slot}cr"
+                )
 
                 candidate_pool: List[str] = []
                 if category_to_fill == "technical":
-                    # Technical electives must come from the program's defined pool
-                    # And must not be a course already designated as a specific program requirement
                     for c_code in program_technical_elective_pool:
                         if c_code not in program_specific_required_codes:
                             candidate_pool.append(c_code)
-                else:  # For humanities, social, english, spanish, free, kinesiology
+                    logger.debug(
+                        f"    Technical elective candidate pool (size {len(candidate_pool)}): {candidate_pool[:10]}{'...' if len(candidate_pool)>10 else ''}"
+                    )
+                else:
                     for c_code, c_lookup_data in course_lookups.items():
-                        # Must not be a specifically required course for the program
                         if c_code in program_specific_required_codes:
                             continue
-
                         actual_course_cat = get_course_category(
                             c_code,
                             program_specific_required_codes,
                             program_technical_elective_pool,
                         )
-
                         if category_to_fill == "free":
-                            # "Free" electives can be anything not specifically required.
-                            # It could even be a technical course if not needed for technical credits.
-                            pass  # No further category filtering for "free"
-                        else:  # Specific categories (humanities, social, etc.)
+                            pass
+                        else:
                             if actual_course_cat != category_to_fill:
                                 continue
-                            # Additionally, ensure a non-technical category is not filled by a designated technical elective
                             if c_code in program_technical_elective_pool:
-                                continue  # e.g. don't use a tech pool course for "humanities"
-
+                                continue
                         candidate_pool.append(c_code)
+                    # logger.debug(f"    Gen-Ed '{category_to_fill}' candidate pool (size {len(candidate_pool)}): {candidate_pool[:10]}{'...' if len(candidate_pool)>10 else ''}")
 
-                random.shuffle(candidate_pool)  # For variety in selection
-
+                random.shuffle(candidate_pool)
                 found_match_for_category = False
                 for cand_course_code in candidate_pool:
                     if (
                         cand_course_code in globally_resolved_and_taken_courses
                         or cand_course_code in courses_resolved_this_term_set
+                        or cand_course_code not in course_lookups
                     ):
-                        continue  # Already taken or assigned in this term
+                        # logger.debug(f"    Skipping candidate {cand_course_code} (already taken/resolved this term).")
+                        continue
 
                     cand_course_data = course_lookups[cand_course_code]
-                    if (
-                        cand_course_data["credits"] != credits_for_slot
-                    ):  # Simplification: exact credit match
+                    if cand_course_data["credits"] != credits_for_slot:
+                        # logger.debug(f"    Skipping candidate {cand_course_code} (credit mismatch: {cand_course_data['credits']} vs {credits_for_slot}).")
                         continue
 
-                    if not await predict_availability(
-                        cand_course_code,
-                        current_term_name_for_api,
-                        db_session,
-                    ):
+                    is_available = await predict_availability(
+                        cand_course_code, current_term_name_for_api, db_session
+                    )
+                    if not is_available:
+                        # logger.debug(f"    Skipping candidate {cand_course_code} (predicted unavailable).")
                         continue
 
-                    # Check Prerequisites (against courses taken *before* this term)
                     prereqs_r = cand_course_data.get("prerequisites_raw")
                     if prereqs_r:
                         parsed_pr = parse_prerequisites(prereqs_r)
@@ -719,9 +752,8 @@ async def resolve_category_requirements(
                         if not check_requisites_recursive(
                             filtered_pr, taken_courses_before_this_term
                         ):
+                            # logger.debug(f"    Skipping candidate {cand_course_code} (prereqs not met).")
                             continue
-
-                    # Check Co-requisites (against (taken before this term) + (all courses resolved in *this* term so far))
                     coreqs_r = cand_course_data.get("corequisites_raw")
                     if coreqs_r:
                         parsed_co = parse_corequisites(coreqs_r)
@@ -732,9 +764,12 @@ async def resolve_category_requirements(
                         if not check_requisites_recursive(
                             filtered_co, co_req_check_set
                         ):
+                            # logger.debug(f"    Skipping candidate {cand_course_code} (coreqs not met).")
                             continue
 
-                    # If all checks pass, select this course
+                    logger.debug(
+                        f"    Selected {cand_course_code} for category '{category_to_fill}'"
+                    )
                     current_term_resolved_termdata.courses.append(cand_course_code)
                     current_term_resolved_termdata.credits += cand_course_data[
                         "credits"
@@ -744,18 +779,22 @@ async def resolve_category_requirements(
                     ]
                     courses_resolved_this_term_set.add(cand_course_code)
                     found_match_for_category = True
-                    break  # Move to next category requirement
+                    break
 
                 if not found_match_for_category:
-                    final_warnings.append(
-                        f"Term {term_key}: Could not resolve category '{category_to_fill}' ({credits_for_slot} cr)."
-                    )
+                    msg = f"Term {term_key}: Could not resolve category '{category_to_fill}' ({credits_for_slot} cr)."
+                    logger.warning(msg)
+                    final_warnings.append(msg)
 
         resolved_schedule_map[term_key] = current_term_resolved_termdata
-        # Update globally tracked courses with those resolved in this term
         globally_resolved_and_taken_courses.update(courses_resolved_this_term_set)
+        logger.info(
+            f"Finished resolving term {term_key}. Courses: {current_term_resolved_termdata.courses}, Credits: {current_term_resolved_termdata.credits}"
+        )
+        logger.debug(
+            f"  Globally resolved/taken courses count: {len(globally_resolved_and_taken_courses)}"
+        )
 
-    # Determine final completion status based on all resolved courses
     is_schedule_truly_complete = _is_program_complete_v2(
         program_reqs,
         globally_resolved_and_taken_courses,
@@ -763,10 +802,16 @@ async def resolve_category_requirements(
         program_specific_required_codes,
         program_technical_elective_pool,
     )
+    logger.info(
+        f"Final program completion status after resolution: {is_schedule_truly_complete}"
+    )
+    if not is_schedule_truly_complete:
+        logger.warning("Program is NOT complete after resolving the skeleton.")
+        # The _is_program_complete_v2 function already logs details on what's missing.
 
     return SchedulerResult(
         schedule=resolved_schedule_map,
-        score=schedule_skeleton.score,  # Score could be re-evaluated based on resolved data
+        score=schedule_skeleton.score,
         is_complete=is_schedule_truly_complete,
         warnings=final_warnings,
     )
@@ -782,6 +827,16 @@ async def generate_sequence(
     db_session: AsyncSession,
     max_terms: int = 15,
 ) -> Tuple[Optional[SchedulerResult], Optional[SchedulerSkeletonResult]]:
+    logger.info(
+        f"--- Starting Schedule Sequence Generation for Program {program_reqs.code} ---"
+    )
+    logger.info(
+        f"Start: {start_term_name.capitalize()} {start_year}, Initial courses: {len(initial_taken_courses_set)}"
+    )
+    logger.debug(
+        f"Initial taken courses: {initial_taken_courses_set if len(initial_taken_courses_set) < 10 else 'first 10...'}"
+    )
+    logger.info(f"Credit limits: {credit_limits}, Max terms: {max_terms}")
 
     main_current_term = start_term_name.lower()
     main_current_year = start_year
@@ -795,11 +850,15 @@ async def generate_sequence(
         )
         return None, None
 
-    # These are needed by helper functions and should be derived once at this level.
     p_specific_req_codes = set(prog_courses_json.keys())
     p_tech_elective_pool = set(prog_tech_electives_json.keys())
+    logger.debug(
+        f"Program specific required codes ({len(p_specific_req_codes)}): {list(p_specific_req_codes)[:10]}{'...' if len(p_specific_req_codes)>10 else ''}"
+    )
+    logger.debug(
+        f"Program technical elective pool ({len(p_tech_elective_pool)}): {list(p_tech_elective_pool)[:10]}{'...' if len(p_tech_elective_pool)>10 else ''}"
+    )
 
-    # Check if program is already complete with the initial set of taken courses
     if _is_program_complete_v2(
         program_reqs,
         initial_taken_courses_set,
@@ -824,98 +883,100 @@ async def generate_sequence(
         )
         return resolved_res, skel_res
 
-    # This set accumulates *specific courses* identified by `generate_semester` calls.
-    # It's used as input for `taken_courses_set` in subsequent `generate_semester` calls.
-    current_cumulative_specific_courses = initial_taken_courses_set.copy()
+    # Accumulates SPECIFIC 'COURSE' type requirements planned in the skeleton so far,
+    # PLUS the initial_taken_courses_set.
+    cumulative_specific_courses_taken_or_planned_in_skeleton = (
+        initial_taken_courses_set.copy()
+    )
+
+    # Accumulates credits for 'COURSE_CATEGORY' requirements planned in the skeleton so far.
+    # Key: category_name (e.g., "english"), Value: total credits planned for this category in skeleton.
+    cumulative_category_credits_planned_in_skeleton = defaultdict(int)
 
     generated_skeleton_map: Dict[str, TermRequisiteData] = {}
     sequence_generation_warnings: List[str] = []
+    is_skeleton_estimated_complete = False
+    DEFAULT_TARGET_DIFFICULTY = 3.0  # Could be made dynamic based on user preferences
 
-    is_skeleton_complete = (
-        False  # Tracks if the skeleton generation loop thinks it completed the program
-    )
-    # Target difficulty for each semester; could be made more dynamic.
-    DEFAULT_TARGET_DIFFICULTY = 3.0
-
-    for _ in range(max_terms):  # Loop to generate semesters
+    for term_count in range(max_terms):
         term_id_str = f"{main_current_term.capitalize()} {main_current_year}"
+        logger.info(
+            f"Generating skeleton for term {term_count + 1}/{max_terms}: {term_id_str}"
+        )
 
         try:
-            # `generate_semester` gets the set of specific courses taken up to *before* the current term.
-            # It returns the planned requirements for the term and whether the program *would be* complete
-            # if those requirements (including specific courses and category placeholders) are met.
-            term_plan_data, program_would_be_complete = await generate_semester(
-                program_reqs=program_reqs,
-                course_lookups=course_lookups,
-                term=main_current_term,
-                year=main_current_year,
-                taken_courses_set=current_cumulative_specific_courses,  # Pass specific courses accumulated so far
-                target_difficulty=DEFAULT_TARGET_DIFFICULTY,
-                credit_limits=credit_limits,
-                db_session=db_session,
+            term_plan_data, program_would_be_complete_estimate = (
+                await generate_semester(
+                    program_reqs=program_reqs,
+                    course_lookups=course_lookups,
+                    term=main_current_term,
+                    year=main_current_year,
+                    taken_or_planned_specific_courses_set=cumulative_specific_courses_taken_or_planned_in_skeleton,
+                    prior_category_credits_planned_in_skeleton=cumulative_category_credits_planned_in_skeleton,  # Pass the accumulated category credits
+                    target_difficulty=DEFAULT_TARGET_DIFFICULTY,
+                    credit_limits=credit_limits,
+                    db_session=db_session,
+                )
             )
-        except ValueError as e:  # Raised by generate_semester (e.g. credit limits)
+        except ValueError as e:
             msg = f"Sequence generation halted: generate_semester failed for {term_id_str}. Reason: {e}"
             logger.error(msg)
             sequence_generation_warnings.append(msg)
-            is_skeleton_complete = (
-                False  # Program definitely not complete if a semester fails
-            )
-            break  # Stop generating more terms
+            is_skeleton_estimated_complete = False
+            break
 
-        if term_plan_data.is_empty() and not program_would_be_complete:
-            # If generate_semester returns an empty plan AND doesn't think the program is complete,
-            # it means no valid courses/requirements could be scheduled for this term, and we're stuck.
-            msg = f"Sequence generation halted: No courses could be scheduled for {term_id_str}, but program not yet complete."
+        if term_plan_data.is_empty() and not program_would_be_complete_estimate:
+            msg = f"Sequence generation halted: No courses/requirements could be scheduled for {term_id_str} via skeleton, but program skeleton not yet estimated complete."
             logger.warning(msg)
             sequence_generation_warnings.append(msg)
-            is_skeleton_complete = False
+            is_skeleton_estimated_complete = False
             break
 
         generated_skeleton_map[term_id_str] = term_plan_data
 
-        # Update `current_cumulative_specific_courses` with *specific courses* from the just-planned term
+        # Update cumulative trackers based on the just-planned term's skeleton
         for req in term_plan_data.requirement:
             if req.kind == "COURSE":
-                current_cumulative_specific_courses.add(req.value)
+                cumulative_specific_courses_taken_or_planned_in_skeleton.add(req.value)
+            elif req.kind == "COURSE_CATEGORY":
+                cumulative_category_credits_planned_in_skeleton[
+                    req.value
+                ] += req.credits
 
-        is_skeleton_complete = (
-            program_would_be_complete  # Update overall completion status
+        logger.debug(
+            f"After {term_id_str} skeleton: Cumulative specific courses planned: {len(cumulative_specific_courses_taken_or_planned_in_skeleton)}"
         )
-        if is_skeleton_complete:
-            logger.info(
-                f"Skeleton generation for {program_reqs.code} indicates program completion after {term_id_str}."
-            )
-            break  # Program requirements are covered by the skeleton
+        logger.debug(
+            f"After {term_id_str} skeleton: Cumulative category credits planned: {dict(cumulative_category_credits_planned_in_skeleton)}"
+        )
 
-        # Advance to the next term
+        is_skeleton_estimated_complete = program_would_be_complete_estimate
+        if is_skeleton_estimated_complete:
+            logger.info(
+                f"Skeleton generation for {program_reqs.code} estimates program completion after {term_id_str}."
+            )
+            break
+
         next_term_info = get_next_term(main_current_term, main_current_year)
         main_current_term = next_term_info["term"]
         main_current_year = next_term_info["year"]
-    else:  # max_terms reached without `is_skeleton_complete` becoming True
-        if not is_skeleton_complete:
-            msg = f"Sequence generation for {program_reqs.code} reached max_terms ({max_terms}) without completing the skeleton."
+    else:  # max_terms reached
+        if not is_skeleton_estimated_complete:
+            msg = f"Sequence generation for {program_reqs.code} reached max_terms ({max_terms}) without estimating skeleton completion."
             logger.warning(msg)
             sequence_generation_warnings.append(msg)
 
-    # Create the SchedulerSkeletonResult
-    skeleton_score_val = float(
-        len(generated_skeleton_map)
-    )  # Simple score: number of terms
-
+    skeleton_score_val = float(len(generated_skeleton_map))
     final_skeleton_result = SchedulerSkeletonResult(
         schedule=generated_skeleton_map,
         score=skeleton_score_val,
-        is_complete=is_skeleton_complete,  # Reflects if skeleton structure covers all requirements
+        is_complete=is_skeleton_estimated_complete,  # This is the estimate from skeleton phase
         warnings=sequence_generation_warnings,
     )
 
-    # If the skeleton map is empty AND the program wasn't complete initially AND the skeleton isn't marked complete,
-    # it means a failure occurred very early or nothing could be scheduled.
-    # The initial completion check handles the "already complete" case.
     if (
         not generated_skeleton_map
-        and not is_skeleton_complete
+        and not is_skeleton_estimated_complete
         and not _is_program_complete_v2(
             program_reqs,
             initial_taken_courses_set,
@@ -927,21 +988,32 @@ async def generate_sequence(
         logger.warning(
             f"No schedule skeleton generated for {program_reqs.code}, and program was not initially complete. Resolution will be skipped."
         )
-        return (
-            None,
-            final_skeleton_result,
-        )  # Return skeleton (possibly empty with warnings) and None for resolved
+        return None, final_skeleton_result
 
-    # Resolve category requirements in the generated skeleton
-    logger.info(f"Resolving category requirements for program {program_reqs.code}...")
+    logger.info(
+        f"--- Skeleton Generation Complete for {program_reqs.code}. Is Skeleton Estimated Complete: {is_skeleton_estimated_complete} ---"
+    )
+    if not is_skeleton_estimated_complete:
+        logger.warning(
+            f"Skeleton for {program_reqs.code} is NOT marked as complete. Proceeding to resolution phase anyway."
+        )
+    for term_key, term_req_data in final_skeleton_result.schedule.items():
+        logger.debug(f"  Skeleton Term {term_key}: {term_req_data.credits}cr")
+        for req_item in term_req_data.requirement:
+            logger.debug(
+                f"    - {req_item.kind} {req_item.value} ({req_item.credits}cr)"
+            )
+
     resolved_final_result = await resolve_category_requirements(
         program_reqs=program_reqs,
         course_lookups=course_lookups,
-        initial_taken_courses=initial_taken_courses_set,  # Crucially, pass the original set here
+        initial_taken_courses=initial_taken_courses_set,  # Start resolution with only the truly initial courses
         schedule_skeleton=final_skeleton_result,
         db_session=db_session,
-        program_specific_required_codes=p_specific_req_codes,  # Pass derived sets
+        program_specific_required_codes=p_specific_req_codes,
         program_technical_elective_pool=p_tech_elective_pool,
     )
-
+    logger.info(
+        f"--- Schedule Sequence Generation and Resolution Finished for Program {program_reqs.code} ---"
+    )
     return resolved_final_result, final_skeleton_result
