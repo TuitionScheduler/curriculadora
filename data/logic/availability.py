@@ -42,7 +42,9 @@ async def predict_availability(
 
     if not course_record:
         # Log less verbosely if this happens often during scheduling?
-        # logger.warning(f"Course {course_code_formatted} not found in DB for availability check.")
+        logger.warning(
+            f"Course {course_code_formatted} not found in DB for availability check."
+        )
         return False  # Course not in DB, assume unavailable
 
     # Get last offered years, default to 0 if column is None/Null

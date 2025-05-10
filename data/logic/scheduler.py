@@ -9,7 +9,7 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from data.database.database import Program, Course
 from data.logic.availability import predict_availability
-from data.parser.parser_utils import (  # Adjust path
+from data.parser.parser_utils import (
     flatten_requisites_to_list,
     parse_prerequisites,
     parse_corequisites,
@@ -193,11 +193,11 @@ def check_requisites_recursive(req_dict: dict, completed_courses: Set[str]) -> b
         # (e.g., '6 credits FOR MATE'), not a condition checked against completed courses.
         # This type should ideally be filtered out by filter_parsed_requisites before checking.
         # If it appears here, it means the requirement structure isn't purely course-based.
-        # We treat it as unmet in the context of checking *course* prerequisites.
-        logger.warning(
-            f"Encountered 'FOR' type during requisite check, treating as unmet: {req_dict}"
+        # We treat it as met in the context of checking *course* prerequisites.
+        logger.info(
+            f"Encountered 'FOR' type during requisite check, treating as met: {req_dict}"
         )
-        return False
+        return True
     else:
         # This case shouldn't be reached if input is pre-filtered correctly
         logger.warning(
@@ -457,11 +457,11 @@ async def generate_schedule_heuristic(
                     ):
                         continue
 
-                    # Check Coreqs (against completed + already added *this term*)
-                    if not check_requisites_recursive(
-                        parsed_coreqs, completed_courses.union(courses_added_this_term)
-                    ):
-                        continue
+                    # # Check Coreqs (against completed + already added *this term*)
+                    # if not check_requisites_recursive(
+                    #     parsed_coreqs, completed_courses.union(courses_added_this_term)
+                    # ):
+                    #     continue
 
                     # Check Availability
                     if not await predict_availability(
@@ -535,11 +535,11 @@ async def generate_schedule_heuristic(
                                 parsed_prereqs, completed_courses
                             ):
                                 continue
-                            if not check_requisites_recursive(
-                                parsed_coreqs,
-                                completed_courses.union(courses_added_this_term),
-                            ):
-                                continue
+                            # if not check_requisites_recursive(
+                            #     parsed_coreqs,
+                            #    completed_courses.union(courses_added_this_term),
+                            # ):
+                            #    continue
                             if not await predict_availability(
                                 course_code, term_type, year, db_session
                             ):
@@ -610,11 +610,11 @@ async def generate_schedule_heuristic(
                         ):
                             continue
                         # Check Coreqs
-                        if not check_requisites_recursive(
-                            parsed_coreqs,
-                            completed_courses.union(courses_added_this_term),
-                        ):
-                            continue
+                        # if not check_requisites_recursive(
+                        #     parsed_coreqs,
+                        #     completed_courses.union(courses_added_this_term),
+                        # ):
+                        #     continue
                         # Check Availability
                         if not await predict_availability(
                             course_code, term_type, year, db_session
