@@ -914,12 +914,6 @@ async def generate_sequence(
         f"Credit limits (base): {credit_limits}, Max terms: {max_terms}, Max resolution attempts/semester: {max_resolution_attempts_per_semester}"
     )
 
-    # TODO: Update this logic to properly start on a student's start year
-    new_start_year = max(date.today().year, start_year)
-    if new_start_year > start_year:
-        start_term_name = "fall"
-    start_year = new_start_year
-
     # Stores the final successfully resolved schedule term by term
     final_resolved_schedule_map: Dict[str, TermData] = {}
     # Stores the skeleton that *led* to a successful resolution for each term

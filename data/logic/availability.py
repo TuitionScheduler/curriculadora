@@ -102,7 +102,7 @@ def fetch_next_term_year() -> tuple[str, int]:
     year = current_date.year
     month = current_date.month
 
-    if month in [1, 2, 3, 4, 5, 6, 7]:
+    if month <= 7:
         return "fall", year
     else:
         return "spring", year + 1
