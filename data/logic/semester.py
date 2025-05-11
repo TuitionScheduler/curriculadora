@@ -24,7 +24,15 @@ if not logger.hasHandlers():
     logging.basicConfig(
         level=logging.INFO,  # Set to DEBUG for most verbose output
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
+        handlers=[
+            logging.StreamHandler(),  # Output to console
+            logging.FileHandler("scheduler.log"),  # Output to file
+        ],
     )
+
+equivalences_dict = {
+    "INGE3016": set("CIIC3015"),
+}
 
 
 # Pydantic models
@@ -115,6 +123,9 @@ def check_requisites_recursive(req_dict: dict, completed_courses: Set[str]) -> b
 
     if req_type == "COURSE":
         course_code = req_dict.get("value", "").replace(" ", "")
+        if course_code in equivalences_dict:
+            options = equivalences_dict[course_code].union({course_code})
+            return any(option in completed_courses for option in options)
         return course_code in completed_courses
     elif req_type == "AND":
         conditions = req_dict.get("conditions", [])
