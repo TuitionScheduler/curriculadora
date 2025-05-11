@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'dart:async';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
+import 'dart:typed_data';
 
 // Processes the HTTP query response and converts it into a List<Map<String, dynamic>>.
 List<Map<String, dynamic>> processQuery(http.Response response, [String tableName = '', String columnName = '', dynamic data = Null]) {
@@ -23,7 +24,7 @@ List<Map<String, dynamic>> processQuery(http.Response response, [String tableNam
     throw Exception('HTTP Request Failed. \n Status Code ${response.statusCode}: ${response.reasonPhrase}. \n $customErrorMessage');
   }
 
-  String jsonResponse = response.body;
+  Uint8List jsonResponse = response.bodyBytes;
 
   // For debugging if the right data type was returned
   // if (jsonResponse is Map){
@@ -33,7 +34,7 @@ List<Map<String, dynamic>> processQuery(http.Response response, [String tableNam
   //   print('$jsonResponse is not a Map');
   // }
 
-  List<dynamic> responseList = jsonDecode(jsonResponse);
+  List<dynamic> responseList = jsonDecode(const Utf8Decoder().convert(jsonResponse));
 
   // Converts each record in the response list to a Map<String, dynamic> 
   // and then adds them to a List<Map>
