@@ -38,10 +38,6 @@ equivalences_dict = {
     },
 }
 
-equivalences_dict = {
-    "INGE3016": set("CIIC3015"),
-}
-
 
 # Pydantic models
 class TermData(BaseModel):
