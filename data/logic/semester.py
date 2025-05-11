@@ -24,12 +24,14 @@ from data.parser.parser_utils import (
 logger = logging.getLogger(__name__)
 # Configure basic logging if not already configured by the application
 if not logger.hasHandlers():
+    import os
+    os.makedirs("logs", exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler("scheduler.log"),
+            logging.FileHandler("logs/scheduler.log"),
         ],
     )
 
@@ -38,7 +40,6 @@ equivalences_dict = {
         "CIIC3015",
     },
 }
-
 
 # Pydantic models
 class TermData(BaseModel):
@@ -920,12 +921,6 @@ async def generate_sequence(
     logger.info(
         f"Credit limits (base): {credit_limits}, Max terms: {max_terms}, Max resolution attempts/semester: {max_resolution_attempts_per_semester}"
     )
-
-    # TODO: Update this logic to properly start on a student's start year
-    new_start_year = max(date.today().year, start_year)
-    if new_start_year > start_year:
-        start_term_name = "fall"
-    start_year = new_start_year
 
     # Stores the final successfully resolved schedule term by term
     final_resolved_schedule_map: Dict[str, TermData] = {}

@@ -1,5 +1,6 @@
 import logging
 import datetime
+from data.logic.availability import fetch_next_term_year
 from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, validator
@@ -214,6 +215,10 @@ async def recommend_schedule_endpoint(
                 "The current scheduler uses a default term difficulty target. "
                 "Dynamic difficulty curve shaping is under development."
             )
+        
+        # TODO: implement course prediction based on start year and term as request start year and term refer to
+        # when a student enrolled rather than the first term/year they are planning for using our scheduler.
+        start_term, start_year = fetch_next_term_year()
 
         # Call the new generate_sequence function
         result_tuple: Tuple[
@@ -221,8 +226,8 @@ async def recommend_schedule_endpoint(
         ] = await generate_sequence(
             program_reqs=program_reqs,
             course_lookups=course_lookups,
-            start_term_name=scheduler_start_term,
-            start_year=request.start_year,
+            start_term_name=start_term,
+            start_year=start_year,
             initial_taken_courses_set=set(request.taken_courses),
             specific_elective_credits_initial=request.specific_elective_credits_initial,
             credit_limits=request.credit_load_preference.model_dump(),
