@@ -25,6 +25,7 @@ logger = logging.getLogger(__name__)
 # Configure basic logging if not already configured by the application
 if not logger.hasHandlers():
     import os
+
     os.makedirs("logs", exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
@@ -40,6 +41,7 @@ equivalences_dict = {
         "CIIC3015",
     },
 }
+
 
 # Pydantic models
 class TermData(BaseModel):

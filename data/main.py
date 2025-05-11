@@ -6,19 +6,13 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, validator
 from typing import List, Dict, Optional, Literal, Set, Tuple, AsyncGenerator
 
-from data.database.database import (
-    Program,
-    Course,
-)  # Assuming Course might be needed, Program is.
 
-# Updated imports from data.logic.scheduler
-from data.logic.semester import (
+from data.logic.recommendation_scheduler import (
     generate_sequence,  # New main generation function
     load_program_data,
     load_course_data_lookups,
     SchedulerResult,
-    SchedulerSkeletonResult,  # For potential debugging or extended info
-    TermData,  # Data structure for a term's courses/credits
+    SchedulerSkeletonResult,
 )
 
 from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
@@ -215,7 +209,7 @@ async def recommend_schedule_endpoint(
                 "The current scheduler uses a default term difficulty target. "
                 "Dynamic difficulty curve shaping is under development."
             )
-        
+
         # TODO: implement course prediction based on start year and term as request start year and term refer to
         # when a student enrolled rather than the first term/year they are planning for using our scheduler.
         upcoming_start_term, upcoming_start_year = fetch_next_term_year()
