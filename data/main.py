@@ -66,6 +66,10 @@ class ScheduleRequest(BaseModel):
     difficulty_curve: Literal["Flat", "Decreasing", "Increasing"] = Field(
         "Flat", description="Desired difficulty curve across terms"
     )
+    specific_elective_credits_initial: Dict[str, int] = Field(  # New field
+        default_factory=dict,
+        description="Credits completed by category (e.g., {'humanities': 6, 'technical': 3})",
+    )
 
     @validator("specific_summers", pre=True, always=True)
     def check_specific_summers(cls, v, values):
@@ -229,6 +233,7 @@ async def recommend_schedule_endpoint(
             start_term_name=upcoming_start_term,
             start_year=upcoming_start_year,
             initial_taken_courses_set=set(request.taken_courses),
+            specific_elective_credits_initial=request.specific_elective_credits_initial,
             credit_limits=request.credit_load_preference.model_dump(),
             db_session=db,
             max_terms=max_terms_for_scheduler,
