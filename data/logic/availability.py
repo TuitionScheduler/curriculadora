@@ -1,4 +1,5 @@
 import logging
+from datetime import date
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from data.database.database import Course
@@ -7,13 +8,12 @@ logger = logging.getLogger(__name__)
 
 
 async def predict_availability(
-    course_code: str, term_type: str, year: int, db_session: AsyncSession
+    course_code: str, term_type: str, db_session: AsyncSession
 ) -> bool:
     """
     Predicts if a course is likely available in a given term and year
     based on the last known year it was offered in that term type.
     (Asynchronous version)
-
     Args:
         course_code: The course code (e.g., "MATE3031").
         term_type: The term ("Fall", "Spring", "FirstSummer",
@@ -21,12 +21,15 @@ async def predict_availability(
         year: The academic year for which the prediction is needed
               (e.g., 2025 for Fall 2025, 2026 for Spring 2026).
         db_session: SQLAlchemy AsyncSession object for database query.
-
     Returns:
         True if the course is predicted to be available, False otherwise.
     """
     course_code_formatted = course_code.replace(" ", "")  # Ensure consistent format
     term_type_lower = term_type.lower()
+
+    # Get current year
+    current_date = date.today()
+    year = current_date.year
 
     # Query the course record - we only need one record per course code
     # as it should contain the latest 'last offered' info for all term types.
@@ -42,7 +45,9 @@ async def predict_availability(
 
     if not course_record:
         # Log less verbosely if this happens often during scheduling?
-        # logger.warning(f"Course {course_code_formatted} not found in DB for availability check.")
+        logger.warning(
+            f"Course {course_code_formatted} not found in DB for availability check."
+        )
         return False  # Course not in DB, assume unavailable
 
     # Get last offered years, default to 0 if column is None/Null
@@ -82,3 +87,19 @@ async def predict_availability(
             f"Unknown term_type '{term_type}' for availability check for {course_code_formatted}."
         )
         return False  # Unknown term type is treated as unavailable
+
+
+def fetch_next_term_year() -> tuple[str, int]:
+    """
+    Fetches the next term based on the current date.
+    Returns:
+        str: The next term in the format "Fall YYYY", "Spring YYYY", etc.
+    """
+    current_date = date.today()
+    year = current_date.year
+    month = current_date.month
+
+    if month <= 7:
+        return "fall", year
+    else:
+        return "spring", year + 1
