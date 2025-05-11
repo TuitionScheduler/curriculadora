@@ -38,6 +38,10 @@ equivalences_dict = {
     },
 }
 
+equivalences_dict = {
+    "INGE3016": set("CIIC3015"),
+}
+
 
 # Pydantic models
 class TermData(BaseModel):
@@ -142,11 +146,11 @@ def check_requisites_recursive(req_dict: dict, completed_courses: Set[str]) -> b
     req_type = req_dict.get("type")
 
     if req_type == "COURSE":
-        course_code_val = req_dict.get("value", "").replace(" ", "")
-        if course_code_val in equivalences_dict:
-            options = equivalences_dict[course_code_val].union({course_code_val})
+        course_code = req_dict.get("value", "").replace(" ", "")
+        if course_code in equivalences_dict:
+            options = equivalences_dict[course_code].union({course_code})
             return any(option in completed_courses for option in options)
-        return course_code_val in completed_courses
+        return course_code in completed_courses
     elif req_type == "AND":
         conditions = req_dict.get("conditions", [])
         if not conditions:
