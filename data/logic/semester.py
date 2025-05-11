@@ -269,6 +269,7 @@ def get_next_term(current_term: str, current_year: int) -> Dict[str, Any]:
 def _is_program_complete_v2(
     program_reqs: Program,
     current_taken_courses: Set[str],
+    specific_elective_credits_initial,
     course_lookups: Dict[str, Dict],
     program_specific_required_codes: Set[str],
     program_technical_elective_pool: Set[str],
@@ -297,6 +298,12 @@ def _is_program_complete_v2(
                 logger.warning(
                     f"{context_message}: Course {course_code_val} not in lookups during credit sum."
                 )
+
+    # Add initial taken credits
+    for category in specific_elective_credits_initial:
+        credits_met_for_category[category] += specific_elective_credits_initial.get(
+            category
+        )
 
     target_category_credits = {
         "english": program_reqs.english or 0,
@@ -893,6 +900,7 @@ async def generate_sequence(
     start_term_name: str,
     start_year: int,
     initial_taken_courses_set: Set[str],
+    specific_elective_credits_initial: Dict[str, int],
     credit_limits: Dict,  # e.g. {"min": 12, "max": 18} for Fall/Spring
     db_session: AsyncSession,
     max_terms: int = 15,
@@ -951,6 +959,7 @@ async def generate_sequence(
     if _is_program_complete_v2(
         program_reqs,
         globally_resolved_and_taken_courses,
+        specific_elective_credits_initial,
         course_lookups,
         p_specific_req_codes,
         p_tech_elective_pool,
@@ -984,6 +993,7 @@ async def generate_sequence(
         if _is_program_complete_v2(
             program_reqs,
             globally_resolved_and_taken_courses,
+            specific_elective_credits_initial,
             course_lookups,
             p_specific_req_codes,
             p_tech_elective_pool,
@@ -1001,7 +1011,10 @@ async def generate_sequence(
 
         # Calculate category credits met by *actually resolved non-specific* courses so far
         # This is passed to generate_semester to inform placeholder generation
-        category_credits_met_by_resolved_courses = defaultdict(int)
+        specific_elective_credits_initial_copy = specific_elective_credits_initial
+        category_credits_met_by_resolved_courses = (
+            specific_elective_credits_initial_copy
+        )
         for course_code_val in globally_resolved_and_taken_courses:
             if (
                 course_code_val not in p_specific_req_codes
@@ -1143,6 +1156,7 @@ async def generate_sequence(
         if not _is_program_complete_v2(
             program_reqs,
             globally_resolved_and_taken_courses,
+            specific_elective_credits_initial,
             course_lookups,
             p_specific_req_codes,
             p_tech_elective_pool,
@@ -1164,6 +1178,7 @@ async def generate_sequence(
         is_program_fully_resolved = _is_program_complete_v2(
             program_reqs,
             globally_resolved_and_taken_courses,
+            specific_elective_credits_initial,
             course_lookups,
             p_specific_req_codes,
             p_tech_elective_pool,
