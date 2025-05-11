@@ -214,7 +214,11 @@ async def recommend_schedule_endpoint(
         
         # TODO: implement course prediction based on start year and term as request start year and term refer to
         # when a student enrolled rather than the first term/year they are planning for using our scheduler.
-        start_term, start_year = fetch_next_term_year()
+        upcoming_start_term, upcoming_start_year = fetch_next_term_year()
+        if request.start_year > upcoming_start_year:
+            # Handle case where the student hasn't enrolled yet
+            upcoming_start_term = "fall"
+            upcoming_start_year = request.start_year
 
         # Call the new generate_sequence function
         result_tuple: Tuple[
@@ -222,8 +226,8 @@ async def recommend_schedule_endpoint(
         ] = await generate_sequence(
             program_reqs=program_reqs,
             course_lookups=course_lookups,
-            start_term_name=start_term,
-            start_year=start_year,
+            start_term_name=upcoming_start_term,
+            start_year=upcoming_start_year,
             initial_taken_courses_set=set(request.taken_courses),
             credit_limits=request.credit_load_preference.model_dump(),
             db_session=db,
