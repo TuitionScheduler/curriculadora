@@ -1,4 +1,7 @@
+import 'dart:convert';
+
 import 'package:curriculadora/models/reading-test.dart';
+import 'package:curriculadora/pages/data_extraction.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
@@ -23,13 +26,16 @@ import 'package:flutter_form_builder/flutter_form_builder.dart';
 
 class AddCurriculumCourses extends StatefulWidget {
   final int page;
-  final Map<String, dynamic> formData;
+  final Map<String, dynamic> formDataCurriculum;
+  final Map<String, dynamic> formDataCourses;
+
   final Function(int newPage) changePage;
   final Function(Map<String, dynamic> formData) saveFormCourses;
   const AddCurriculumCourses(
       {super.key,
       required this.page,
-      required this.formData,
+      required this.formDataCurriculum,
+      required this.formDataCourses,
       required this.changePage,
       required this.saveFormCourses});
 
@@ -42,6 +48,37 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
   late Map<String, dynamic> formData = {};
   // Map<String, Map<String, dynamic>> courseTree = testCourses();
   Iterable<String> courses = testCourses().keys;
+  bool _loading = false;
+  List<Map<String, dynamic>> program = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _loading = true;
+    });
+
+    List<Map<String, dynamic>> results = [];
+
+    try {
+      results = await getRecord(
+          'programs', 'code', widget.formDataCurriculum['program0']);
+    } catch (e) {
+      print('Query was unable to get record(s) from database: \n $e');
+    }
+
+    setState(() {
+      program = results;
+      // print(program.toString());
+      // print(program.length);
+      print(courses.toString());
+      _loading = false;
+    });
+  }
 
   Widget courseStatus(String code) {
     return FormBuilderRadioGroup(
@@ -54,7 +91,9 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
         ]);
   }
 
-  Widget courseStatusForm(Iterable<String> courses) {
+  Widget courseStatusForm(List<Map<String, dynamic>> program) {
+    Map<String, dynamic> coursesMap = jsonDecode(program[0]['courses']);
+    Iterable<String> courses = coursesMap.keys;
     List<Widget> courseList = [];
     for (final course in courses) {
       courseList.add(Row(
@@ -67,6 +106,151 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
       ));
       courseList.add(const Divider());
     }
+    if (program[0]['english'] != 0) {
+      int credits = program[0]['english'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('English credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'english',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+    if (program[0]['spanish'] != 0) {
+      int credits = program[0]['spanish'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('Spanish credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'spanish',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+    if (program[0]['humanities'] != 0) {
+      int credits = program[0]['humanities'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('Humanities credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'humanities',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+    if (program[0]['social'] != 0) {
+      int credits = program[0]['social'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('Social credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'social',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+    if (program[0]['sociohumanistics'] != 0) {
+      int credits = program[0]['sociohumanistics'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('Sociohumanistic credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'sociohumanistics',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+    if (program[0]['technical'] != 0) {
+      int credits = program[0]['technical'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('Technical credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'technical',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+    if (program[0]['free'] != 0) {
+      int credits = program[0]['free'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('Free credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'free',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+    if (program[0]['kinesiology'] != 0) {
+      int credits = program[0]['kinesiology'];
+      courseList.add(Row(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          const Expanded(child: Text('Kinesiology credits')),
+          Expanded(
+              child: FormBuilderSlider(
+            name: 'kinesiology',
+            initialValue: 0,
+            min: 0,
+            max: credits.toDouble(),
+            divisions: credits,
+          )),
+        ],
+      ));
+      courseList.add(const Divider());
+    }
+
     courseList.removeLast();
     return Container(
         child: Padding(
@@ -80,42 +264,46 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
 
   @override
   Widget build(BuildContext context) {
-    return FormBuilder(
-        key: _formKey,
-        autovalidateMode: AutovalidateMode.onUnfocus,
-        child: SingleChildScrollView(
-            child: Column(
-          mainAxisAlignment: MainAxisAlignment.start,
-          children: <Widget>[
-            // courseStatusForm(courses),
-            courseStatusForm(courses),
+    if (_loading == true) {
+      return const CircularProgressIndicator();
+    } else {
+      return FormBuilder(
+          key: _formKey,
+          autovalidateMode: AutovalidateMode.onUnfocus,
+          child: SingleChildScrollView(
+              child: Column(
+            mainAxisAlignment: MainAxisAlignment.start,
+            children: <Widget>[
+              // courseStatusForm(courses),
+              courseStatusForm(program),
 
-            ElevatedButton(
-                onPressed: () {
-                  _formKey.currentState?.save();
-                  formData = _formKey.currentState!.value;
-                  ScaffoldMessenger.of(context).removeCurrentSnackBar();
-                  ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(content: Text(formData.toString())));
-                },
-                child: const Text("Save")),
-            ElevatedButton(
-                onPressed: () {
-                  _formKey.currentState?.save();
-                  formData = _formKey.currentState!.value;
-                  widget.saveFormCourses(formData);
-                  widget.changePage(0);
-                },
-                child: Text("Prev")),
-            ElevatedButton(
-                onPressed: () {
-                  _formKey.currentState?.save();
-                  formData = _formKey.currentState!.value;
-                  widget.saveFormCourses(formData);
-                  widget.changePage(2);
-                },
-                child: Text("Next"))
-          ],
-        )));
+              ElevatedButton(
+                  onPressed: () {
+                    _formKey.currentState?.save();
+                    formData = _formKey.currentState!.value;
+                    ScaffoldMessenger.of(context).removeCurrentSnackBar();
+                    ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text(formData.toString())));
+                  },
+                  child: const Text("Save")),
+              ElevatedButton(
+                  onPressed: () {
+                    _formKey.currentState?.save();
+                    formData = _formKey.currentState!.value;
+                    widget.saveFormCourses(formData);
+                    widget.changePage(0);
+                  },
+                  child: Text("Prev")),
+              ElevatedButton(
+                  onPressed: () {
+                    _formKey.currentState?.save();
+                    formData = _formKey.currentState!.value;
+                    widget.saveFormCourses(formData);
+                    widget.changePage(2);
+                  },
+                  child: Text("Next"))
+            ],
+          )));
+    }
   }
 }

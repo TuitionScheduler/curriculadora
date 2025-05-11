@@ -1,3 +1,4 @@
+import 'package:curriculadora/pages/data_extraction.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
 
@@ -11,161 +12,194 @@ class DegreeForm extends StatefulWidget {
 }
 
 class _DegreeFormState extends State<DegreeForm> {
-  List<String> program = ["CIIC", "INSO", "ICOM", "INEL", "ININ"];
+  // late Future<List<Map<String, dynamic>>> program;
   List<String> degree = ["Bachelor's", "Master's", "Doctorate", "Minor"];
   List<String> term = ["S1", "S2", "V"];
   List<String> year = ["Y1", "Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9"];
   List<String> difficulty = ["Flat", "Increasing", "Decreasing"];
+  bool _loading = false;
+  List<Map<String, dynamic>> programs = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchData();
+  }
+
+  Future<void> _fetchData() async {
+    setState(() {
+      _loading = true;
+    });
+
+    List<Map<String, dynamic>> results = [];
+
+    try {
+      results = await getAllRecordsFromTable('programs');
+    } catch (e) {
+      print('Query was unable to get record(s) from database: \n $e');
+    }
+
+    setState(() {
+      programs = results;
+      // print(programs.toString());
+      // print(programs.length);
+      _loading = false;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      mainAxisAlignment: MainAxisAlignment.start,
-      children: <Widget>[
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-                child: Text(
-              "Degree:",
-              style: TextStyle(fontSize: 16),
-            )),
-            Flexible(
-                child: SizedBox(
-              width: 15,
-            )),
-            Expanded(
-              child: FormBuilderDropdown(
-                key: UniqueKey(),
-                name: 'degree${widget.index}',
-                initialValue: degree[0],
-                items: degree.map((option) {
-                  return DropdownMenuItem(
-                    value: option,
-                    child: Text(option),
-                  );
-                }).toList(),
-              ),
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-                child: Text(
-              "Study program:",
-              style: TextStyle(fontSize: 16),
-            )),
-            // Flexible(
-            //     child: SizedBox(
-            //   width: 15,
-            // )),
-            Expanded(
-              flex: 3,
-              child: FormBuilderDropdown(
-                key: UniqueKey(),
-                name: 'program${widget.index}',
-                initialValue: program[0],
-                items: program.map((option) {
-                  return DropdownMenuItem(
-                    value: option,
-                    child: Text(option.toString()),
-                  );
-                }).toList(),
-              ),
-            )
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
-                flex: 3,
-                child: Text(
-                  "Current year & term:",
-                  style: TextStyle(fontSize: 16),
-                )),
-            Flexible(
-                child: SizedBox(
-              width: 8,
-            )),
-            Flexible(
-              child: FormBuilderDropdown(
+    if (_loading == true) {
+      return const CircularProgressIndicator();
+    } else {
+      return Column(
+        mainAxisAlignment: MainAxisAlignment.start,
+        children: <Widget>[
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                  child: Text(
+                "Degree:",
+                style: TextStyle(fontSize: 16),
+              )),
+              Flexible(
+                  child: SizedBox(
+                width: 15,
+              )),
+              Expanded(
+                child: FormBuilderDropdown(
                   key: UniqueKey(),
-                  name: 'startYear${widget.index}',
-                  initialValue: year[0],
-                  items: year.map((option) {
+                  name: 'degree${widget.index}',
+                  initialValue: degree[0],
+                  items: degree.map((option) {
                     return DropdownMenuItem(
                       value: option,
                       child: Text(option),
                     );
-                  }).toList()),
-            ),
-            Flexible(
-                child: SizedBox(
-              width: 8,
-            )),
-            Flexible(
-                child: FormBuilderDropdown(
-                    key: UniqueKey(),
-                    name: 'startTerm${widget.index}',
-                    initialValue: term[0],
-                    items: term.map((option) {
-                      return DropdownMenuItem(
-                        value: option,
-                        child: Text(option),
-                      );
-                    }).toList()))
-          ],
-        ),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Flexible(
+                  }).toList(),
+                ),
+              )
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                  child: Text(
+                "Study program:",
+                style: TextStyle(fontSize: 16),
+              )),
+              // Flexible(
+              //     child: SizedBox(
+              //   width: 15,
+              // )),
+              Expanded(
                 flex: 3,
-                child: Text(
-                  "Expected to graduate in:",
-                  style: TextStyle(fontSize: 16),
-                )),
-            Flexible(
-                child: SizedBox(
-              width: 8,
-            )),
-            Flexible(
-              child: FormBuilderDropdown(
+                child: FormBuilderDropdown(
                   key: UniqueKey(),
-                  name: 'endYear${widget.index}',
-                  initialValue: year[4],
-                  items: year.map((option) {
+                  name: 'program${widget.index}',
+                  // initialValue: ,
+                  items: programs.map((option) {
                     return DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
+                      value: option["code"],
+                      child: Text(option["name"].toString()),
                     );
-                  }).toList()),
-            ),
-            Flexible(
-                child: SizedBox(
-              width: 8,
-            )),
-            Flexible(
+                  }).toList(),
+                ),
+              )
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                  flex: 3,
+                  child: Text(
+                    "Current year & term:",
+                    style: TextStyle(fontSize: 16),
+                  )),
+              Flexible(
+                  child: SizedBox(
+                width: 8,
+              )),
+              Flexible(
                 child: FormBuilderDropdown(
                     key: UniqueKey(),
-                    name: 'endTerm${widget.index}',
-                    initialValue: term[1],
-                    items: term.map((option) {
+                    name: 'startYear${widget.index}',
+                    initialValue: year[0],
+                    items: year.map((option) {
                       return DropdownMenuItem(
                         value: option,
                         child: Text(option),
                       );
-                    }).toList()))
-          ],
-        ),
-        SizedBox(
-          height: 10,
-        ),
-      ],
-    );
+                    }).toList()),
+              ),
+              Flexible(
+                  child: SizedBox(
+                width: 8,
+              )),
+              Flexible(
+                  child: FormBuilderDropdown(
+                      key: UniqueKey(),
+                      name: 'startTerm${widget.index}',
+                      initialValue: term[0],
+                      items: term.map((option) {
+                        return DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
+                        );
+                      }).toList()))
+            ],
+          ),
+          Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Flexible(
+                  flex: 3,
+                  child: Text(
+                    "Expected to graduate in:",
+                    style: TextStyle(fontSize: 16),
+                  )),
+              Flexible(
+                  child: SizedBox(
+                width: 8,
+              )),
+              Flexible(
+                child: FormBuilderDropdown(
+                    key: UniqueKey(),
+                    name: 'endYear${widget.index}',
+                    initialValue: year[4],
+                    items: year.map((option) {
+                      return DropdownMenuItem(
+                        value: option,
+                        child: Text(option),
+                      );
+                    }).toList()),
+              ),
+              Flexible(
+                  child: SizedBox(
+                width: 8,
+              )),
+              Flexible(
+                  child: FormBuilderDropdown(
+                      key: UniqueKey(),
+                      name: 'endTerm${widget.index}',
+                      initialValue: term[1],
+                      items: term.map((option) {
+                        return DropdownMenuItem(
+                          value: option,
+                          child: Text(option),
+                        );
+                      }).toList()))
+            ],
+          ),
+          SizedBox(
+            height: 10,
+          ),
+        ],
+      );
+    }
   }
 }
 
@@ -218,6 +252,7 @@ class _AddCurriculumState extends State<AddCurriculum> {
     if (widget.formData.entries.isNotEmpty) {
       _formKey.currentState?.patchValue(widget.formData);
     }
+
     return FormBuilder(
       key: _formKey,
       autovalidateMode: AutovalidateMode.onUnfocus,

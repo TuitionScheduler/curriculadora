@@ -44,7 +44,8 @@ class _AddCurriculumState extends State<AddCurriculumPage> {
     } else if (page == 1) {
       return AddCurriculumCourses(
           page: page,
-          formData: formDataCourses,
+          formDataCurriculum: formDataCurriculum,
+          formDataCourses: formDataCourses,
           changePage: changePage,
           saveFormCourses: saveFormCourses);
     } else if (page == 2) {
