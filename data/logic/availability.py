@@ -89,3 +89,20 @@ async def predict_availability(
             f"Unknown term_type '{term_type}' for availability check for {course_code_formatted}."
         )
         return False  # Unknown term type is treated as unavailable
+
+
+def fetch_next_term_year() -> tuple[str, int]:
+    """
+    Fetches the next term based on the current date.
+
+    Returns:
+        str: The next term in the format "Fall YYYY", "Spring YYYY", etc.
+    """
+    current_date = date.today()
+    year = current_date.year
+    month = current_date.month
+
+    if month in [1, 2, 3, 4, 5, 6, 7]:
+        return "fall", year
+    else:
+        return "spring", year + 1

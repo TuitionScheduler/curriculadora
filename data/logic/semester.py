@@ -23,12 +23,14 @@ from data.parser.parser_utils import (
 logger = logging.getLogger(__name__)
 # Configure basic logging if not already configured by the application
 if not logger.hasHandlers():
+    import os
+    os.makedirs("logs", exist_ok=True)
     logging.basicConfig(
         level=logging.INFO,
         format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
         handlers=[
             logging.StreamHandler(),
-            logging.FileHandler("scheduler.log"),
+            logging.FileHandler("logs/scheduler.log"),
         ],
     )
 
@@ -37,11 +39,6 @@ equivalences_dict = {
         "CIIC3015",
     },
 }
-
-equivalences_dict = {
-    "INGE3016": set("CIIC3015"),
-}
-
 
 # Pydantic models
 class TermData(BaseModel):
