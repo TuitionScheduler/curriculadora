@@ -317,10 +317,8 @@ def calculate_all_course_paths(all_parsed_reqs: dict) -> dict:
     """
     Calculates the longest prerequisite path for all courses provided in the
     all_parsed_reqs dictionary.
-
     Args:
         all_parsed_reqs: Dict mapping course_code -> parsed_prerequisite_dict.
-
     Returns:
         Dict mapping course_code -> longest_path_length (int, -1 for cycles).
     """
