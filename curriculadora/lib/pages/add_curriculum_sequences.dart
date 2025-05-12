@@ -1,4 +1,5 @@
 import 'package:curriculadora/models/reading-test.dart';
+import 'package:curriculadora/models/recommend_schedule.dart';
 import 'package:flutter/material.dart';
 
 class AddCurriculumSequences extends StatefulWidget {
@@ -18,21 +19,56 @@ class AddCurriculumSequences extends StatefulWidget {
 }
 
 class _AddCurriculumSequencesState extends State<AddCurriculumSequences> {
-  late int currentSequence;
-  late int totalSequences;
+  late int currentRecommendation;
+  late int totalRecommendations;
   late List<Map<String, dynamic>> sequenceList;
+  bool _loading = false;
+  List<Map<String, dynamic>> recommendations = [];
 
   @override
   void initState() {
     super.initState();
-    currentSequence = 0;
-    sequenceList = getRecommendations();
-    totalSequences = sequenceList.length;
+    _fetchData();
+    // currentRecommendation = 0;
+    // sequenceList = getRecommendations();
+    // totalRecommendations = sequenceList.length;
   }
 
-  List<Map<String, dynamic>> getRecommendations() {
-    // Map<String, dynamic> recs = testRecommendations();
-    return testRecommendations()["recommendations"];
+  Future<void> _fetchData() async {
+    setState(() {
+      _loading = true;
+    });
+
+    Map<String, dynamic> results = {};
+
+    try {
+      results = await getRecommendations(testPreferences());
+      // results = testRecommendations()["recommendations"];
+    } catch (e) {
+      print('Unable to get recs: \n $e');
+    }
+
+    setState(() {
+      print(results.toString());
+      print(results['recommendations'].toString());
+      recommendations =
+          List<Map<String, dynamic>>.from(results['recommendations']);
+      currentRecommendation = 0;
+      totalRecommendations = recommendations.length;
+      // print(program.toString());
+      // print(program.length);
+      // print(recommendations.toString());
+      _loading = false;
+    });
+  }
+  // List<Map<String, dynamic>> getRecommendations() {
+  //   // Map<String, dynamic> recs = testRecommendations();
+  //   return testRecommendations()["recommendations"];
+  // }
+
+  Map<String, dynamic> getPreferences(
+      Map<String, dynamic> curriculumForm, Map<String, dynamic> coursesForm) {
+    return {};
   }
 
   Widget displayRow(String courseCode, int requisites, int requisitesFor) {
@@ -69,7 +105,8 @@ class _AddCurriculumSequencesState extends State<AddCurriculumSequences> {
   }
 
   List<Widget> displaySequence(Map<String, dynamic> sequence) {
-    List<Map<String, dynamic>> details = sequence["schedule_details"];
+    List<Map<String, dynamic>> details =
+        List<Map<String, dynamic>>.from(sequence["schedule_details"]);
     List<Widget> semesterList = [];
     for (int i = 0; i < details.length; i++) {
       List<Widget> courseList = [];
@@ -84,7 +121,8 @@ class _AddCurriculumSequencesState extends State<AddCurriculumSequences> {
           height: 5,
         ),
       );
-      List<String> courses = details[i]["courses"];
+      List<String> courses = List<String>.from(details[i]["courses"]);
+
       for (int j = 0; j < courses.length; j++) {
         courseList.add(displayRow(courses[j], 0, 0));
         courseList.add(const Divider());
@@ -102,65 +140,69 @@ class _AddCurriculumSequencesState extends State<AddCurriculumSequences> {
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      children: [
-        // Text("Test"),
-        // Text(widget.formDataCurriculum.toString()),
-        // Text(widget.formDataCourses.toString()),
-        // const SizedBox(
-        //   height: 20,
-        // ),
-        Expanded(
-            child: SingleChildScrollView(
-          child: Column(
+    if (_loading == true) {
+      return const CircularProgressIndicator();
+    } else {
+      return Column(
+        children: [
+          // Text("Test"),
+          // Text(widget.formDataCurriculum.toString()),
+          // Text(widget.formDataCourses.toString()),
+          // const SizedBox(
+          //   height: 20,
+          // ),
+          Expanded(
+              child: SingleChildScrollView(
+            child: Column(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: displaySequence(recommendations[currentRecommendation]),
+            ),
+          )),
+          Row(
             mainAxisAlignment: MainAxisAlignment.center,
-            children: displaySequence(sequenceList[currentSequence]),
+            children: [
+              ElevatedButton(
+                  onPressed: () {
+                    if (currentRecommendation > 0) {
+                      setState(() {
+                        currentRecommendation--;
+                      });
+                    }
+                  },
+                  child: Icon(Icons.keyboard_arrow_left)),
+              SizedBox(
+                width: 10,
+              ),
+              Text("${currentRecommendation + 1}/$totalRecommendations"),
+              SizedBox(
+                width: 10,
+              ),
+              ElevatedButton(
+                  onPressed: () {
+                    if (currentRecommendation < totalRecommendations - 1) {
+                      setState(() {
+                        currentRecommendation++;
+                      });
+                    }
+                  },
+                  child: Icon(Icons.keyboard_arrow_right))
+            ],
           ),
-        )),
-        Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            ElevatedButton(
-                onPressed: () {
-                  if (currentSequence > 0) {
-                    setState(() {
-                      currentSequence--;
-                    });
-                  }
-                },
-                child: Icon(Icons.keyboard_arrow_left)),
-            SizedBox(
-              width: 10,
-            ),
-            Text("${currentSequence + 1}/$totalSequences"),
-            SizedBox(
-              width: 10,
-            ),
-            ElevatedButton(
-                onPressed: () {
-                  if (currentSequence < totalSequences - 1) {
-                    setState(() {
-                      currentSequence++;
-                    });
-                  }
-                },
-                child: Icon(Icons.keyboard_arrow_right))
-          ],
-        ),
-        Row(
-          children: [
-            ElevatedButton(
-                onPressed: () {
-                  widget.changePage(1);
-                },
-                child: const Text("Prev")),
-            Spacer(),
-            ElevatedButton(onPressed: () {}, child: Text("Save")),
-            Spacer(),
-            ElevatedButton(onPressed: () {}, child: Text("Finish")),
-          ],
-        ),
-      ],
-    );
+          Row(
+            children: [
+              ElevatedButton(
+                  onPressed: () {
+                    widget.changePage(1);
+                  },
+                  child: const Text("Prev")),
+              Spacer(),
+              ElevatedButton(onPressed: () {}, child: Text("Save")),
+              Spacer(),
+              ElevatedButton(onPressed: () {}, child: Text("Finish")),
+            ],
+          ),
+        ],
+      );
+    }
   }
 }
