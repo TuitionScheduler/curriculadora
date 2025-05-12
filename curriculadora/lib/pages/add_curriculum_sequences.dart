@@ -1,4 +1,3 @@
-import 'package:curriculadora/models/reading-test.dart';
 import 'package:curriculadora/models/recommend_schedule.dart';
 import 'package:flutter/material.dart';
 
@@ -41,9 +40,13 @@ class _AddCurriculumSequencesState extends State<AddCurriculumSequences> {
 
     Map<String, dynamic> results = {};
 
+    Map<String, dynamic> prefs =
+        getPreferences(widget.formDataCurriculum, widget.formDataCourses);
+    print(prefs.toString());
     try {
-      results = await getRecommendations(testPreferences());
+      // results = await getRecommendations(testPreferences());
       // results = testRecommendations()["recommendations"];
+      results = await getRecommendations(prefs);
     } catch (e) {
       print('Unable to get recs: \n $e');
     }
@@ -68,7 +71,52 @@ class _AddCurriculumSequencesState extends State<AddCurriculumSequences> {
 
   Map<String, dynamic> getPreferences(
       Map<String, dynamic> curriculumForm, Map<String, dynamic> coursesForm) {
-    return {};
+    List<String> takenCourses = [];
+    Map<String, int> electives = {};
+    Iterable<String> courses = coursesForm.keys;
+    for (final course in courses) {
+      if (course.length == 8) {
+        if ((coursesForm[course] == "complete" ||
+            coursesForm[course] == "in-progress")) {
+          takenCourses.add(course);
+        }
+      } else {
+        switch (course) {
+          case 'english':
+            electives['english'] = coursesForm[course];
+          case 'spanish':
+            electives['spanish'] = coursesForm[course];
+          case 'humanities':
+            electives['humanities'] = coursesForm[course];
+          case 'social':
+            electives['social'] = coursesForm[course];
+          case 'sociohumanistics':
+            electives['sociohumanistics'] = coursesForm[course];
+          case 'technical':
+            electives['technical'] = coursesForm[course];
+          case 'free':
+            electives['free'] = coursesForm[course];
+          case 'kinesiology':
+            electives['kinesiology'] = coursesForm[course];
+        }
+      }
+    }
+    return {
+      "program_code": curriculumForm['program0'].toString(),
+      "start_year": curriculumForm['startYear0'].year,
+      "start_term": curriculumForm['startTerm0'],
+      "target_grad_year": curriculumForm['endYear0'].year,
+      "target_grad_term": curriculumForm['endTerm0'],
+      "taken_courses": takenCourses,
+      "specific_elective_credits_initial": electives,
+      "credit_load_preference": {
+        "min": curriculumForm['creditLoad'].start.round(),
+        "max": curriculumForm['creditLoad'].end.round()
+      },
+      "summer_preference": curriculumForm['summerPreference'],
+      "specific_summers": null,
+      "difficulty_curve": curriculumForm['difficultyCurve']
+    };
   }
 
   Widget displayRow(String courseCode, int requisites, int requisitesFor) {

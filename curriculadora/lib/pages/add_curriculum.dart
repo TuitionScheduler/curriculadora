@@ -1,6 +1,7 @@
 import 'package:curriculadora/pages/data_extraction.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
+import 'package:intl/intl.dart';
 
 class DegreeForm extends StatefulWidget {
   final int index;
@@ -14,7 +15,7 @@ class DegreeForm extends StatefulWidget {
 class _DegreeFormState extends State<DegreeForm> {
   // late Future<List<Map<String, dynamic>>> program;
   List<String> degree = ["Bachelor's", "Master's", "Doctorate", "Minor"];
-  List<String> term = ["S1", "S2", "V"];
+  List<String> term = ["Fall", "Spring"];
   List<String> year = ["Y1", "Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9"];
   List<String> difficulty = ["Flat", "Increasing", "Decreasing"];
   bool _loading = false;
@@ -55,33 +56,33 @@ class _DegreeFormState extends State<DegreeForm> {
       return Column(
         mainAxisAlignment: MainAxisAlignment.start,
         children: <Widget>[
-          Row(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              Flexible(
-                  child: Text(
-                "Degree:",
-                style: TextStyle(fontSize: 16),
-              )),
-              Flexible(
-                  child: SizedBox(
-                width: 15,
-              )),
-              Expanded(
-                child: FormBuilderDropdown(
-                  key: UniqueKey(),
-                  name: 'degree${widget.index}',
-                  initialValue: degree[0],
-                  items: degree.map((option) {
-                    return DropdownMenuItem(
-                      value: option,
-                      child: Text(option),
-                    );
-                  }).toList(),
-                ),
-              )
-            ],
-          ),
+          // Row(
+          //   mainAxisAlignment: MainAxisAlignment.center,
+          //   children: [
+          //     Flexible(
+          //         child: Text(
+          //       "Degree:",
+          //       style: TextStyle(fontSize: 16),
+          //     )),
+          //     Flexible(
+          //         child: SizedBox(
+          //       width: 15,
+          //     )),
+          //     Expanded(
+          //       child: FormBuilderDropdown(
+          //         key: UniqueKey(),
+          //         name: 'degree${widget.index}',
+          //         initialValue: degree[0],
+          //         items: degree.map((option) {
+          //           return DropdownMenuItem(
+          //             value: option,
+          //             child: Text(option),
+          //           );
+          //         }).toList(),
+          //       ),
+          //     )
+          //   ],
+          // ),
           Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
@@ -123,18 +124,24 @@ class _DegreeFormState extends State<DegreeForm> {
                   child: SizedBox(
                 width: 8,
               )),
+              // Flexible(
+              //   child: FormBuilderDropdown(
+              //       key: UniqueKey(),
+              //       name: 'startYear${widget.index}',
+              //       initialValue: year[0],
+              //       items: year.map((option) {
+              //         return DropdownMenuItem(
+              //           value: option,
+              //           child: Text(option),
+              //         );
+              //       }).toList()),
+              // ),
               Flexible(
-                child: FormBuilderDropdown(
-                    key: UniqueKey(),
-                    name: 'startYear${widget.index}',
-                    initialValue: year[0],
-                    items: year.map((option) {
-                      return DropdownMenuItem(
-                        value: option,
-                        child: Text(option),
-                      );
-                    }).toList()),
-              ),
+                  child: FormBuilderDateTimePicker(
+                name: 'startYear${widget.index}',
+                format: DateFormat('y'),
+                initialValue: DateTime(2027),
+              )),
               Flexible(
                   child: SizedBox(
                 width: 8,
@@ -165,18 +172,24 @@ class _DegreeFormState extends State<DegreeForm> {
                   child: SizedBox(
                 width: 8,
               )),
+              // Flexible(
+              //   child: FormBuilderDropdown(
+              //       key: UniqueKey(),
+              //       name: 'endYear${widget.index}',
+              //       initialValue: year[4],
+              //       items: year.map((option) {
+              //         return DropdownMenuItem(
+              //           value: option,
+              //           child: Text(option),
+              //         );
+              //       }).toList()),
+              // ),
               Flexible(
-                child: FormBuilderDropdown(
-                    key: UniqueKey(),
-                    name: 'endYear${widget.index}',
-                    initialValue: year[4],
-                    items: year.map((option) {
-                      return DropdownMenuItem(
-                        value: option,
-                        child: Text(option),
-                      );
-                    }).toList()),
-              ),
+                  child: FormBuilderDateTimePicker(
+                name: 'endYear${widget.index}',
+                format: DateFormat('y'),
+                initialValue: DateTime(2032),
+              )),
               Flexible(
                   child: SizedBox(
                 width: 8,
@@ -226,26 +239,8 @@ class _AddCurriculumState extends State<AddCurriculum> {
   List<String> term = ["S1", "S2", "V"];
   List<String> year = ["Y1", "Y2", "Y3", "Y4", "Y5", "Y6", "Y7", "Y8", "Y9"];
   List<String> difficulty = ["Flat", "Increasing", "Decreasing"];
+  List<String> summer = ["None", "All", "Specific"];
   late Map<String, dynamic> formData = {};
-
-  // List<DegreeForm> degreeList = <DegreeForm>[];
-
-  // void unregisterDegree(int i) {
-  //   print(_formKey.currentState!.fields);
-  //   print("Removing: $i");
-  //   _formKey.currentState!.unregisterField(
-  //       'degree$i', _formKey.currentState!.fields['degree$i']!);
-  //   _formKey.currentState!.unregisterField(
-  //       'program$i', _formKey.currentState!.fields['program$i']!);
-  //   _formKey.currentState!.unregisterField(
-  //       'startYear$i', _formKey.currentState!.fields['startYear$i']!);
-  //   _formKey.currentState!.unregisterField(
-  //       'startTerm$i', _formKey.currentState!.fields['startTerm$i']!);
-  //   _formKey.currentState!.unregisterField(
-  //       'endYear$i', _formKey.currentState!.fields['endYear$i']!);
-  //   _formKey.currentState!.unregisterField(
-  //       'endTerm$i', _formKey.currentState!.fields['endTerm$i']!);
-  // }
 
   @override
   Widget build(BuildContext context) {
@@ -315,14 +310,40 @@ class _AddCurriculumState extends State<AddCurriculum> {
                 )
               ],
             ),
+            // Row(
+            //   mainAxisAlignment: MainAxisAlignment.center,
+            //   children: [
+            //     Flexible(
+            //       child: FormBuilderSwitch(
+            //           name: 'summerClasses',
+            //           title: Text("Take Summer Classes?",
+            //               style: TextStyle(fontSize: 16))),
+            //     )
+            //   ],
+            // ),
             Row(
               mainAxisAlignment: MainAxisAlignment.center,
               children: [
                 Flexible(
-                  child: FormBuilderSwitch(
-                      name: 'summerClasses',
-                      title: Text("Take Summer Classes?",
-                          style: TextStyle(fontSize: 16))),
+                    child: Text(
+                  "Summer classes preference:",
+                  style: TextStyle(fontSize: 16),
+                )),
+                Flexible(
+                    child: SizedBox(
+                  width: 15,
+                )),
+                Flexible(
+                  child: FormBuilderDropdown(
+                    name: 'summerPreference',
+                    initialValue: summer[0],
+                    items: summer.map((option) {
+                      return DropdownMenuItem(
+                        value: option,
+                        child: Text(option),
+                      );
+                    }).toList(),
+                  ),
                 )
               ],
             ),
