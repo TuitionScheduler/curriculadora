@@ -5,7 +5,7 @@ from fastapi import FastAPI, Depends, HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel, Field, validator
 from typing import List, Dict, Optional, Literal, Set, Tuple, AsyncGenerator
-
+from fastapi.middleware.cors import CORSMiddleware
 
 from data.logic.recommendation_scheduler import (
     generate_sequence,  # New main generation function
@@ -19,6 +19,13 @@ from sqlalchemy.ext.asyncio import create_async_engine, async_sessionmaker
 
 app = FastAPI()
 
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # Pydantic models
 class CreditLoad(BaseModel):

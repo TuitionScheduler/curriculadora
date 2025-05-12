@@ -28,6 +28,14 @@ class AppDrawerState extends State<AppDrawer> {
             },
           ),
           ListTile(
+            title: const Text('Database Extraction Testing'),
+            onTap: () {
+              Navigator.pop(context);
+              BlocProvider.of<CurriculadoraCubit>(context)
+                  .setPage(CurriculadoraPage.dataExtraction);
+            },
+          ),
+          ListTile(
             title: const Text('Saved Sequences'),
             onTap: () {
               Navigator.pop(context);
@@ -41,6 +49,15 @@ class AppDrawerState extends State<AppDrawer> {
               Navigator.pop(context);
               BlocProvider.of<CurriculadoraCubit>(context)
                   .setPage(CurriculadoraPage.generateSequence);
+            },
+          ),
+          const Divider(),
+          ListTile(
+            title: const Text('Add Curriculum'),
+            onTap: () {
+              Navigator.pop(context);
+              BlocProvider.of<CurriculadoraCubit>(context)
+                  .setPage(CurriculadoraPage.addCurriculum);
             },
           ),
           const Divider(),

@@ -7,4 +7,5 @@ parsetab.py
 dist/
 logs/
 .env
-scheduler.log
+MyCurricVenv/
+WebVenv/
