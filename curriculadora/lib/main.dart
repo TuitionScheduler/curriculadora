@@ -15,7 +15,7 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       home: BlocProvider(
         create: (context) => CurriculadoraCubit(),
-        child: const Curriculadora(),
+        child: Curriculadora(),
       ),
     );
   }

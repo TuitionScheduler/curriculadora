@@ -4,13 +4,15 @@ import 'package:flutter/material.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 
 class Curriculadora extends StatelessWidget {
-  const Curriculadora({super.key});
-
+  Curriculadora({super.key});
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
+  // Scaffold( key: _scaffoldKey,)
   @override
   Widget build(BuildContext context) {
     return BlocBuilder<CurriculadoraCubit, CurriculadoraState>(
         builder: (context, state) {
       return Scaffold(
+        key: _scaffoldKey,
         appBar: AppBar(
           title: Text("Curriculadora"),
         ),
