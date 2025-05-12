@@ -61,8 +61,24 @@ NOTE: You can change command parameters between Fall, Spring, FirstSummer or Sec
     - .\sql_run.bat
 
 ### For Mac:
+
 1. Open terminal inside the curriculadora folder in which "sql_ru.sh" is:
 2. Make sure to have the correct virtual environment; refer to the previous section "Requirement Installation" to do so.
 3. Run the following command:
     - export PYTHONPATH=$(pwd)
     - bash sql_run.sh
+
+## How to Run the Backend:
+
+1. Run the following commands:
+    - poetry env activate
+    - uvicorn data.main:app --reload
+
+## How to Carry Out Locust Testing:
+
+1. Run the backend.
+2. Run the following command:
+    - poetry run locust
+3. Open the generated link.
+4. Enter the amount of users and QPS.
+5. Start testing.

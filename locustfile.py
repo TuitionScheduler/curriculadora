@@ -39,7 +39,7 @@ class QuickstartUser(HttpUser):
                     "kinesiology": 0,
                 },
                 "credit_load_preference": {"min": 9, "max": 18},
-                "summer_preference": "None",
+                "summer_preference": "All",
                 "specific_summers": None,
                 "difficulty_curve": "Flat",
             },
