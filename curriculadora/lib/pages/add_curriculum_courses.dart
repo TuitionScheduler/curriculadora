@@ -1,6 +1,5 @@
 import 'dart:convert';
 
-import 'package:curriculadora/models/reading-test.dart';
 import 'package:curriculadora/pages/data_extraction.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_form_builder/flutter_form_builder.dart';
@@ -47,7 +46,7 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
   final _formKey = GlobalKey<FormBuilderState>();
   late Map<String, dynamic> formData = {};
   // Map<String, Map<String, dynamic>> courseTree = testCourses();
-  Iterable<String> courses = testCourses().keys;
+  // Iterable<String> courses = testCourses().keys;
   bool _loading = false;
   List<Map<String, dynamic>> program = [];
 
@@ -75,7 +74,7 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
       program = results;
       // print(program.toString());
       // print(program.length);
-      print(courses.toString());
+      // print(courses.toString());
       _loading = false;
     });
   }
@@ -286,22 +285,30 @@ class _AddCurriculumCoursesState extends State<AddCurriculumCourses> {
                         SnackBar(content: Text(formData.toString())));
                   },
                   child: const Text("Save")),
-              ElevatedButton(
-                  onPressed: () {
-                    _formKey.currentState?.save();
-                    formData = _formKey.currentState!.value;
-                    widget.saveFormCourses(formData);
-                    widget.changePage(0);
-                  },
-                  child: Text("Prev")),
-              ElevatedButton(
-                  onPressed: () {
-                    _formKey.currentState?.save();
-                    formData = _formKey.currentState!.value;
-                    widget.saveFormCourses(formData);
-                    widget.changePage(2);
-                  },
-                  child: Text("Next"))
+              Row(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  ElevatedButton(
+                      onPressed: () {
+                        _formKey.currentState?.save();
+                        formData = _formKey.currentState!.value;
+                        widget.saveFormCourses(formData);
+                        widget.changePage(0);
+                      },
+                      child: Text("Prev")),
+                  const SizedBox(
+                    width: 20,
+                  ),
+                  ElevatedButton(
+                      onPressed: () {
+                        _formKey.currentState?.save();
+                        formData = _formKey.currentState!.value;
+                        widget.saveFormCourses(formData);
+                        widget.changePage(2);
+                      },
+                      child: Text("Next"))
+                ],
+              )
             ],
           )));
     }
