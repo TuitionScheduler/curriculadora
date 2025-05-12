@@ -7,14 +7,14 @@ import argparse
 import asyncio
 from aiolimiter import AsyncLimiter
 from paramiko import SSHClient
-from sqlalchemy import delete
+from sqlalchemy import delete, select
 from data.parser.schedule_parser import parse_schedule
 from data.scraper.log_utils import ScraperTarget, configure_logging
 from data.scraper.ssh_scraper import (
     initialize_ssh_channels,
     ssh_scraper_task,
 )
-from data.database.database import Course, Section, Meeting, Base
+from data.database.database import Course, Base
 from data.models.constants import db_to_rumad_terms, ideal_ssh_tasks
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import (
@@ -45,80 +45,167 @@ async def write_to_database_task(
         term = data["term"]
         year = data["year"]
         async with AsyncSessionLocal() as session:
-            with session.no_autoflush:
-                try:
-                    # Go through all the courses, delete existing db records, then batch add all the new records
-                    courses = []
-                    for course_code, course_data in data["courses"].items():
+            # Use session.begin() for transaction management if not handled by AsyncSessionLocal context
+            # async with session.begin():
+            try:
+                courses_to_process = []  # List to hold Course objects for add_all
+                for course_code, course_data in data["courses"].items():
+
+                    temp_last_fall = 0
+                    temp_last_spring = 0
+                    temp_last_first_summer = 0
+                    temp_last_second_summer = 0
+                    temp_last_extended_summer = 0
+
+                    # Set current term/year temporarily
+                    term_lower = term.lower()
+                    if term_lower == "fall":
+                        temp_last_fall = year
+                    if term_lower == "spring":
+                        temp_last_spring = year
+                    if term_lower == "firstsummer":
+                        temp_last_first_summer = year
+                    if term_lower == "secondsummer":
+                        temp_last_second_summer = year
+                    if term_lower == "extendedsummer":
+                        temp_last_extended_summer = year
+
+                    # Check if the course is already in the database
+                    stmt = select(Course).where(Course.course_code == course_code)
+                    result = await session.execute(stmt)
+                    existing_course = result.scalars().first()
+
+                    if existing_course:
+                        # Get previous last terms, handle None
+                        prev_last_fall = existing_course.last_Fall or 0
+                        prev_last_spring = existing_course.last_Spring or 0
+                        prev_last_first_summer = existing_course.last_FirstSummer or 0
+                        prev_last_second_summer = existing_course.last_SecondSummer or 0
+                        prev_last_extended_summer = (
+                            existing_course.last_ExtendedSummer or 0
+                        )
+
+                        # Update with the max year seen for each term
+                        temp_last_fall = max(temp_last_fall, prev_last_fall)
+                        temp_last_spring = max(temp_last_spring, prev_last_spring)
+                        temp_last_first_summer = max(
+                            temp_last_first_summer, prev_last_first_summer
+                        )
+                        temp_last_second_summer = max(
+                            temp_last_second_summer, prev_last_second_summer
+                        )
+                        temp_last_extended_summer = max(
+                            temp_last_extended_summer, prev_last_extended_summer
+                        )
+
+                        # Update existing course object IN MEMORY
+                        # SQLAlchemy tracks changes to persistent objects within a session
+                        course = existing_course
+                        course.course_name = course_data["courseName"]
+                        # Update term/year to reflect the data just scraped
+                        course.year = year
+                        course.term = term
+                        course.last_Fall = temp_last_fall
+                        course.last_Spring = temp_last_spring
+                        course.last_FirstSummer = temp_last_first_summer
+                        course.last_SecondSummer = temp_last_second_summer
+                        course.last_ExtendedSummer = temp_last_extended_summer
+                        course.credits = course_data["credits"]
+                        course.department = course_data["department"]
+                        course.prerequisites = course_data["prerequisites"]
+                        course.corequisites = course_data["corequisites"]
+                        # Ensure new fields have defaults if updating older records
+                        course.highest_ancestor = course.highest_ancestor or 0
+                        course.difficulty = course.difficulty or 0
+
+                    else:
+                        # If it doesn't exist, create a new course object
                         course = Course(
                             course_code=course_code,
                             course_name=course_data["courseName"],
-                            year=year,
-                            term=term,
+                            year=year,  # Reflects scraped term/year
+                            term=term,  # Reflects scraped term/year
+                            last_Fall=temp_last_fall,
+                            last_Spring=temp_last_spring,
+                            last_FirstSummer=temp_last_first_summer,
+                            last_SecondSummer=temp_last_second_summer,
+                            last_ExtendedSummer=temp_last_extended_summer,
                             credits=course_data["credits"],
                             department=course_data["department"],
                             prerequisites=course_data["prerequisites"],
                             corequisites=course_data["corequisites"],
+                            highest_ancestor=0,  # Default value
+                            difficulty=0,  # Default value
                         )
 
-                        # Add new sections and meetings
-                        for section_data in course_data["sections"]:
-                            section = Section(
-                                section_code=section_data["sectionCode"],
-                                meetings_text=",".join(section_data["meetings"]),
-                                modality=section_data["modality"],
-                                capacity=section_data["capacity"],
-                                taken=section_data["usage"],
-                                reserved=section_data["reserved"],
-                                professors=",".join(
-                                    [
-                                        prof["name"]
-                                        for prof in section_data["professors"]
-                                    ]
-                                ),
-                                misc=section_data["misc"],
-                            )
-                            course.sections.append(section)
-                            for meeting_text in section_data["meetings"]:
-                                meetingDict = parse_schedule(meeting_text)
-                                if meetingDict is None:
-                                    continue
-                                meeting = Meeting(
-                                    building=meetingDict["building"],
-                                    room=meetingDict["room"],
-                                    days=meetingDict["days"],
-                                    start_time=meetingDict["start_time"],
-                                    end_time=meetingDict["end_time"],
-                                )
-                                section.meetings.append(meeting)
+                    # #############################################
+                    # ### REMOVE OR COMMENT OUT THIS ENTIRE BLOCK ###
+                    # #############################################
+                    # # Add new sections and meetings
+                    # for section_data in course_data["sections"]:
+                    #     section = Section(
+                    #         section_code=section_data["sectionCode"],
+                    #         meetings_text=",".join(section_data["meetings"]),
+                    #         modality=section_data["modality"],
+                    #         capacity=section_data["capacity"],
+                    #         taken=section_data["usage"],
+                    #         reserved=section_data["reserved"],
+                    #         professors=",".join(
+                    #             [
+                    #                 prof["name"]
+                    #                 for prof in section_data["professors"]
+                    #             ]
+                    #         ),
+                    #         misc=section_data["misc"],
+                    #         semester=term + "-" + str(year),
+                    #     )
+                    #     # course.sections.append(section) # DON'T append section to course
+                    #     for meeting_text in section_data["meetings"]:
+                    #         meetingDict = parse_schedule(meeting_text)
+                    #         if meetingDict is None:
+                    #             continue
+                    #         meeting = Meeting(
+                    #             building=meetingDict["building"],
+                    #             room=meetingDict["room"],
+                    #             days=meetingDict["days"],
+                    #             start_time=meetingDict["start_time"],
+                    #             end_time=meetingDict["end_time"],
+                    #         )
+                    #         # section.meetings.append(meeting) # DON'T append meeting to section
+                    # #############################################
+                    # ### END BLOCK TO REMOVE/COMMENT OUT ###
+                    # #############################################
 
-                        # delete the existing version of the course and add the new one to the db
-                        course_delete_query = delete(Course).where(
-                            Course.course_code == course_code
-                            and Course.term == term
-                            and Course.year == year
-                        )
-                        await session.execute(course_delete_query)
-                        courses.append(course)
-                    try:
-                        logging.info(
-                            f"DB Task: Adding {len(courses)} courses to SQL DB"
-                        )
-                        session.add_all(courses)
-                        await asyncio.wait_for(session.commit(), timeout=30)
-                        logging.info(f"DB Task: Saved {department} to SQL DB")
-                    except asyncio.TimeoutError:
-                        logging.warning(f"DB Task: Commit timeout for {department}.")
-                except IntegrityError as e:
-                    logging.exception(f"DB Task: IntegrityError for {course}: {str(e)}")
-                    await session.rollback()
-                except Exception as e:
-                    logging.exception(
-                        f"DB Task: Error saving course {course_code} to DB: {str(e)}"
+                    courses_to_process.append(course)
+
+                if courses_to_process:
+                    logging.info(
+                        f"DB Task: Staging {len(courses_to_process)} course inserts/updates for {department}"
                     )
-                    await session.rollback()
-                finally:
-                    db_queue.task_done()
+                    # If existing_course was loaded within this session, changes are tracked.
+                    # If new, add() marks it for INSERT. add_all handles both.
+                    session.add_all(courses_to_process)
+
+                await asyncio.wait_for(session.commit(), timeout=30)
+                logging.info(f"DB Task: Committed changes for {department} to SQL DB")
+
+            # Exception handling
+            except asyncio.TimeoutError:
+                logging.warning(f"DB Task: Commit timeout for {department}.")
+                # No need to rollback on timeout, maybe retry? But current logic continues.
+            except IntegrityError as e:
+                logging.exception(
+                    f"DB Task: IntegrityError processing {department}. Rolling back. Error: {str(e)}"
+                )
+                await session.rollback()
+            except Exception as e:
+                logging.exception(
+                    f"DB Task: Error processing {department}. Rolling back. Error: {str(e)}"
+                )
+                await session.rollback()
+            finally:
+                # Ensure task_done is called even if commit fails within the loop's try
+                db_queue.task_done()
 
 
 async def pass_through_queue_task(

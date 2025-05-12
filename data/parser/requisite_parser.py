@@ -1,4 +1,4 @@
-#requisite unused
+# requisite unused
 
 import re
 import ply.yacc as yacc
@@ -143,7 +143,7 @@ def t_EXAM_REQUIREMENT(t):
 
 
 def t_DEPARTMENT_REQUIREMENT(t):
-    r"[A-Z]{4}"
+    r"(?!PARA)[A-Z]{4}"
     t.value = {"type": "DEPARTMENT_REQUIREMENT", "value": t.value}
     return t
 
@@ -333,14 +333,77 @@ def lexer_tester(input_string):
         tok = lexer.token()
 
 
+def _preprocess_string(input_string: str) -> tuple[str, bool]:
+    """Checks parenthesis balance and attempts to fix extra trailing ')'."""
+    if not input_string or not input_string.strip():
+        return "", True  # Empty is valid (no requisites)
+
+    s = input_string.strip()
+    open_count = s.count("(")
+    close_count = s.count(")")
+
+    if open_count == close_count:
+        return s, True  # Balanced, assume valid syntax for parser
+
+    # Specific case: Exactly one extra closing paren AND it's the last char
+    if close_count == open_count + 1 and s.endswith(")"):
+        return s[:-1], True
+    else:
+        # Unbalanced in a way we can't easily fix, flag as error
+        logger.error(
+            f"Unmatched parentheses detected in: '{input_string}' (Open: {open_count}, Close: {close_count})"
+        )
+        return input_string, False  # Indicate invalid syntax
+
+
 def parse_prerequisites(input_string):
+    processed_string, is_potentially_valid = _preprocess_string(input_string or "")
+    if not is_potentially_valid:
+        return {
+            "type": "PARSE_ERROR",
+            "value": input_string,
+            "error": "Unmatched parentheses detected",
+        }
+    if not processed_string:  # Was empty or only whitespace
+        return {}
     try:
-        result = parser.parse(input_string, lexer=lexer)
-        return result
+        lexer.lineno = 1
+        # Parse the potentially corrected string
+        result = parser.parse(processed_string, lexer=lexer)
+        return result if result is not None else {}
+    except SyntaxError as e:
+        logger.error(
+            f"PLY Parser failed for '{processed_string}' (Original: '{input_string}'): {e}"
+        )
+        return {"type": "PARSE_ERROR", "value": input_string, "error": str(e)}
     except Exception as e:
-        logger.error(f"Errored out whilst parsing {input_string}: {e}")
-        return {"type": "UNKNOWN", "value": input_string}
+        logger.error(
+            f"Unexpected error parsing '{processed_string}' (Original: '{input_string}'): {e}"
+        )
+        return {"type": "PARSE_ERROR", "value": input_string, "error": str(e)}
 
 
 def parse_corequisites(input_string):
-    return parse_prerequisites(input_string)
+    processed_string, is_potentially_valid = _preprocess_string(input_string or "")
+    if not is_potentially_valid:
+        return {
+            "type": "PARSE_ERROR",
+            "value": input_string,
+            "error": "Unmatched parentheses detected",
+        }
+    if not processed_string:  # Was empty or only whitespace
+        return {}
+    try:
+        lexer.lineno = 1
+        result = parser.parse(processed_string, lexer=lexer)
+        return result if result is not None else {}
+    except SyntaxError as e:
+        logger.error(
+            f"Failed to parse corequisite string '{processed_string}' (Original: '{input_string}'): {e}"
+        )
+        return {"type": "PARSE_ERROR", "value": input_string, "error": str(e)}
+    except Exception as e:
+        logger.error(
+            f"Unexpected error parsing corequisite string '{processed_string}' (Original: '{input_string}'): {e}"
+        )
+        return {"type": "PARSE_ERROR", "value": input_string, "error": str(e)}

@@ -61,8 +61,7 @@ NOTE: You can change command parameters between Fall, Spring, FirstSummer or Sec
     - .\sql_run.bat
 
 ### For Mac:
-1. Open terminal inside the Data folder:
-    - cd data
+1. Open terminal inside the curriculadora folder in which "sql_ru.sh" is:
 2. Make sure to have the correct virtual environment; refer to the previous section "Requirement Installation" to do so.
 3. Run the following command:
     - export PYTHONPATH=$(pwd)

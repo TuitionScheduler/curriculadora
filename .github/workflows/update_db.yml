@@ -1,10 +1,8 @@
 name: Update Database
 
 on:
-  # nvm for now, this was causing an infinite loop  xD
-  # push:
-  #   branches:
-  #     - database-testing 
+  schedule:
+    - cron: '1 8 * * 4,6'
   workflow_dispatch:
 
 jobs:
@@ -27,16 +25,26 @@ jobs:
           python -m pip install --upgrade pip
           pip install poetry
           poetry install
-
-      - name: Run python script to create/update database
-        run: |
-          python data\scraper\scrape_to_sql.py
-
+      
       - name: SSH Setup
         uses: webfactory/ssh-agent@v0.5.3
         with:
           ssh-private-key: ${{ secrets.SSH_PRIVATE_REPO_KEY }}
-        
+
+      - name: Run python script to create/update database
+        run: |
+          bash sql_run.sh
+      
+      # - name: Run python script to create/update database
+      #   run: |
+      #     poetry run python data/scraper/scrape_to_sql.py --term Spring
+      # ???
+
+      # - name: SSH Setup
+      #   uses: webfactory/ssh-agent@v0.5.3
+      #   with:
+      #     ssh-private-key: ${{ secrets.SSH_PRIVATE_REPO_KEY }}
+
       - name: Switch from HTTPS to SSH
         run: git remote set-url origin git@github.com:TuitionScheduler/curriculadora.git
 
